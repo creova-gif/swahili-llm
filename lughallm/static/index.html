@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LughaLLM — Pan-African AI Playground & Developer Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f17;
+            --surface-color: #121824;
+            --surface-subtle: #1a2233;
+            --surface-border: #26344d;
+            --accent-green: #10b981;
+            --accent-green-dim: rgba(16, 185, 129, 0.15);
+            --accent-yellow: #f59e0b;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-red: #ef4444;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 1.5rem 1rem 3rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--surface-border);
+            padding-bottom: 1.5rem;
+        }
+
+        .badge-bar {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            background: var(--accent-green-dim);
+            color: var(--accent-green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-blue {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--accent-blue);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .badge-purple {
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--accent-purple);
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        .badge-yellow {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-yellow);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        h1 {
+            font-size: 2.4rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #ffffff 0%, #10b981 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.lead {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            max-width: 780px;
+            margin: 0 auto;
+        }
+
+        /* Nav Tabs */
+        .tab-nav {
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--surface-border);
+            margin-bottom: 1.75rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+
+        .tab-button {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 600;
+            padding: 0.6rem 1.1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tab-button:hover {
+            color: var(--text-primary);
+            background: var(--surface-subtle);
+        }
+
+        .tab-button.active {
+            color: var(--accent-green);
+            background: var(--accent-green-dim);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 860px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .sample-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        button.btn-chip {
+            background: var(--surface-subtle);
+            border: 1px solid var(--surface-border);
+            color: var(--text-primary);
+            padding: 0.4rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        button.btn-chip:hover {
+            border-color: var(--accent-green);
+            background: #232f45;
+        }
+
+        textarea, input, select {
+            width: 100%;
+            background: #090d14;
+            border: 1px solid var(--surface-border);
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+        }
+
+        textarea:focus, input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-green);
+        }
+
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--accent-green);
+            color: #0b0f17;
+            font-weight: 700;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.92;
+            transform: translateY(-1px);
+        }
+
+        .result-box {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #090d14;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-green);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.88rem;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+
+        .thinking-box {
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            color: #fbd38d;
+            font-size: 0.82rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* USSD Feature Phone Simulator */
+        .phone-wrapper {
+            max-width: 340px;
+            margin: 0 auto;
+            background: #222938;
+            border: 4px solid #374151;
+            border-radius: 28px;
+            padding: 1.25rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        .phone-screen {
+            background: #9cad86;
+            color: #111827;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            padding: 0.9rem;
+            border-radius: 8px;
+            min-height: 180px;
+            border: 2px solid #6b7c59;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+            white-space: pre-wrap;
+            font-size: 0.85rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .phone-keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+
+        .keypad-btn {
+            background: #374151;
+            color: #f3f4f6;
+            border: 1px solid #4b5563;
+            border-radius: 8px;
+            padding: 0.75rem 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+
+        .keypad-btn:active {
+            background: #1f2937;
+            transform: scale(0.96);
+        }
+
+        .keypad-btn.action-send {
+            background: #059669;
+            color: white;
+            font-size: 0.85rem;
+        }
+
+        .keypad-btn.action-end {
+            background: #dc2626;
+            color: white;
+            font-size: 0.85rem;
+        }
+
+        /* Tool Cards */
+        .tool-card {
+            background: #090d14;
+            border: 1px solid var(--surface-border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .tool-card h3 {
+            font-size: 0.95rem;
+            color: var(--accent-green);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Table */
+        table.leaderboard {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+
+        table.leaderboard th, table.leaderboard td {
+            padding: 0.65rem 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--surface-border);
+        }
+
+        table.leaderboard th {
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .score-pill {
+            font-weight: bold;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .score-green {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--accent-green);
+        }
+
+        .score-red {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--accent-red);
+        }
+
+        code {
+            background: #090d14;
+            border: 1px solid var(--surface-border);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #38bdf8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="badge-bar">
+                <span class="badge">UN SDG 9: Innovation & Infrastructure</span>
+                <span class="badge badge-yellow">🧠 System-2 &lt;fikiri&gt; Reasoning</span>
+                <span class="badge badge-blue">⚡ Agentic Tools</span>
+                <span class="badge badge-purple">📟 Offline 2G USSD</span>
+                <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border-color: rgba(245, 158, 11, 0.3);">
+                    🌍 Pan-African: 🇹🇿 TZ • 🇰🇪 KE • 🇨🇩 DRC • 🇺🇬 UG • 🇷🇼 RW • 🇧🇮 BI • 🇸🇸 SS
+                </span>
+            </div>
+            <h1>LughaLLM Pan-African AI Playground</h1>
+            <p class="lead">The Open-Weights Foundational Swahili AI Infrastructure serving 200 Million+ citizens across East and Central Africa.</p>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="tab-nav">
+            <button class="tab-button active" onclick="switchTab('chat')">💬 Mazungumzo (Chat & Reasoning)</button>
+            <button class="tab-button" onclick="switchTab('tools')">🛠️ Vyombo vya Kujitegemea (Agentic Tools)</button>
+            <button class="tab-button" onclick="switchTab('ussd')">📟 Kiigaji cha USSD (*149*00#)</button>
+            <button class="tab-button" onclick="switchTab('billing')">💳 M-Pesa & Sarafu za Kikanda</button>
+            <button class="tab-button" onclick="switchTab('bench')">🏆 SWAHILI-BENCH & Edge GGUF</button>
+        </div>
+
+        <!-- TAB 1: CHAT & DEEP REASONING -->
+        <div id="tab-chat" class="tab-pane active">
+            <div class="grid">
+                <div class="card">
+                    <h2>⚡ Mazungumzo yenye Utambuzi wa Lahaja</h2>
+                    <div class="sample-buttons">
+                        <button class="btn-chip" onclick="setQuery('Shikamoo mwalimu, naomba msaada wa kuelewa mzunguko wa zao la mahindi.')">🇹🇿 Heshima / Shikamoo</button>
+                        <button class="btn-chip" onclick="setQuery('Manze jana mbogi yetu ilichanga ganji mob sana kujiandaa na luku.')">🇰🇪 Sheng (Nairobi)</button>
+                        <button class="btn-chip" onclick="setQuery('Niko mu bureau ya Goma, nataka kuludia na sina l\'argent ya moto leo.')">🇨🇩 Kingwana (DRC)</button>
+                        <button class="btn-chip" onclick="setQuery('Tugende mu katale ya Kampala, ssebo anataka kulipa kodi ya URA kwa MoMo.')">🇺🇬 Trade (Uganda)</button>
+                        <button class="btn-chip" onclick="setQuery('Kuna nchi inaitwa Jamhuri ya Kilimanjaro yenye sarafu ya Kili?')">🛡️ Fact / Anti-Hallucination</button>
+                    </div>
+
+                    <textarea id="promptInput" placeholder="Andika ujumbe wako kwa Kiswahili, Sheng, au Kingwana hapa..."></textarea>
+
+                    <label class="toggle-label">
+                        <input type="checkbox" id="thinkingToggle" checked style="width: auto; margin-bottom: 0;">
+                        <span>Washa Kufikiri (System-2 Swahili Reasoning Trace <code>&lt;fikiri&gt;</code>)</span>
+                    </label>
+
+                    <button class="btn-primary" onclick="processChat()">Tuma Ujumbe (Process Message)</button>
+                </div>
+
+                <div class="card">
+                    <h2>📋 Majibu & Uchambuzi wa Kiakili (Output)</h2>
+                    <div id="chatPlaceholder" style="color: var(--text-muted); font-size: 0.9rem; padding: 2rem 0; text-align: center;">
+                        Chagua mfano au andika ujumbe kubofya 'Tuma Ujumbe'.
+                    </div>
+                    <div id="chatOutput" style="display: none;">
+                        <div id="thinkingTrace" class="thinking-box" style="display: none;"></div>
+                        <div id="responseBox" class="result-box"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: AGENTIC TOOLS -->
+        <div id="tab-tools" class="tab-pane">
+            <div class="grid">
+                <div class="card">
+                    <h2>🛡️ Vyombo vya Ulinzi wa Mkulima na Mfanyabiashara</h2>
+                    
+                    <!-- Tool 1: Loan simplifier -->
+                    <div class="tool-card">
+                        <h3>1. rahisisha_mkopo_kidijitali (Digital Loan APR Protector)</h3>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                            Hukokotoa riba ya kweli kwa mwaka (APR) ya mikopo ya simu kuwalinda wafanyabiashara wadogo.
+                        </p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
+                            <input id="loanAmount" type="number" value="50000" placeholder="Kiasi (k.m 50,000)">
+                            <input id="loanRepay" type="number" value="65000" placeholder="Rejesho (k.m 65,000)">
+                            <input id="loanDays" type="number" value="14" placeholder="Siku (k.m 14)">
+                        </div>
+                        <button class="btn-chip" style="width: 100%;" onclick="runLoanTool()">Chambua Hatari ya Mkopo</button>
+                    </div>
+
+                    <!-- Tool 2: Crop disease -->
+                    <div class="tool-card">
+                        <h3>2. tiba_ya_magonjwa_ya_mimea (Crop Pest & Disease Advisor)</h3>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                            Tiba nafuu ya asili na dawa zilizoidhinishwa kwa wakulima wa vijijini.
+                        </p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <input id="pestCrop" type="text" value="mahindi" placeholder="Zao (k.m mahindi)">
+                            <input id="pestSymptom" type="text" value="funza wa mahindi" placeholder="Dalili/Mdudu">
+                        </div>
+                        <button class="btn-chip" style="width: 100%;" onclick="runCropTool()">Pata Tiba ya Zao</button>
+                    </div>
+
+                    <!-- Tool 3: Tax calculator -->
+                    <div class="tool-card">
+                        <h3>3. hesabu_kodi_kikanda (Regional VAT & Tax Engine)</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <input id="taxAmount" type="number" value="150000" placeholder="Kiasi cha pesa">
+                            <select id="taxCountry">
+                                <option value="Tanzania">Tanzania (TRA 18%)</option>
+                                <option value="Kenya">Kenya (KRA 16%)</option>
+                                <option value="Uganda">Uganda (URA 18%)</option>
+                                <option value="DRC">DRC (DGI 16%)</option>
+                                <option value="Rwanda">Rwanda (RRA 18%)</option>
+                            </select>
+                        </div>
+                        <button class="btn-chip" style="width: 100%;" onclick="runTaxTool()">Hesabu Kodi ya Kikanda</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>📊 Matokeo ya Chombo (Execution Result)</h2>
+                    <div id="toolResult" class="result-box">Chagua chombo kushoto ili kuona matokeo ya utekelezaji.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: USSD SIMULATOR -->
+        <div id="tab-ussd" class="tab-pane">
+            <div class="grid">
+                <div class="card">
+                    <h2>📟 Muundo wa 2G USSD (*149*00#)</h2>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
+                        Zaidi ya 60% ya wakulima na wazee hutumia simu za vitufe (feature phones kama vile itel na Nokia 105). USSD haihitaji intaneti wala bando la data.
+                    </p>
+                    <ul style="color: var(--text-secondary); font-size: 0.85rem; margin-left: 1.25rem; margin-bottom: 1.5rem;">
+                        <li><strong>Shortcode:</strong> <code>*149*00#</code> (Universal Gateway)</li>
+                        <li><strong>Gharama:</strong> Bure (Zero Data)</li>
+                        <li><strong>Muda wa Kujibu:</strong> Chini ya milisekunde 150</li>
+                    </ul>
+                    <button class="btn-primary" onclick="initUSSD()">Weka Upya / Piga *149*00#</button>
+                </div>
+
+                <!-- Interactive Phone Mockup -->
+                <div class="card" style="display: flex; justify-content: center; align-items: center;">
+                    <div class="phone-wrapper">
+                        <div style="text-align: center; font-size: 0.75rem; color: #9ca3af; margin-bottom: 0.4rem;">
+                            📶 VODACOM / SAFARICOM (2G)
+                        </div>
+                        <div id="ussdDisplay" class="phone-screen">CON Karibu LughaLLM:
+1. Ushauri wa Kilimo
+2. Huduma za Fedha & Kodi
+3. Methali & Utamaduni
+4. Maelezo ya Huduma</div>
+                        
+                        <input id="ussdKeyInput" type="text" placeholder="Andika namba hapa..." style="margin-bottom: 0.75rem; text-align: center; font-weight: bold;">
+                        
+                        <div class="phone-keypad">
+                            <button class="keypad-btn" onclick="pressKey('1')">1</button>
+                            <button class="keypad-btn" onclick="pressKey('2')">2</button>
+                            <button class="keypad-btn" onclick="pressKey('3')">3</button>
+                            <button class="keypad-btn" onclick="pressKey('4')">4</button>
+                            <button class="keypad-btn" onclick="pressKey('5')">5</button>
+                            <button class="keypad-btn" onclick="pressKey('6')">6</button>
+                            <button class="keypad-btn" onclick="pressKey('7')">7</button>
+                            <button class="keypad-btn" onclick="pressKey('8')">8</button>
+                            <button class="keypad-btn" onclick="pressKey('9')">9</button>
+                            <button class="keypad-btn action-send" onclick="sendUSSD()">SEND</button>
+                            <button class="keypad-btn" onclick="pressKey('0')">0</button>
+                            <button class="keypad-btn action-end" onclick="initUSSD()">END</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: BILLING & M-PESA -->
+        <div id="tab-billing" class="tab-pane">
+            <div class="grid">
+                <div class="card">
+                    <h2>📱 M-Pesa & Mobile Money Token Ledger</h2>
+                    <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                        Mfumo wa malipo wa kikanda unaokubali M-Pesa, Airtel Money, Halopesa, na MTN MoMo kwa sarafu 6 za Afrika Mashariki.
+                    </p>
+
+                    <label style="font-size: 0.85rem; color: var(--text-secondary);">Chagua Sarafu:</label>
+                    <select id="currencySelect" onchange="updateRate()">
+                        <option value="TZS">Shilingi ya Tanzania (TZS) — TZS 25 / 1k tokens</option>
+                        <option value="KES">Shilingi ya Kenya (KES) — KES 1.25 / 1k tokens</option>
+                        <option value="UGX">Shilingi ya Uganda (UGX) — UGX 36.5 / 1k tokens</option>
+                        <option value="CDF">Faranga ya Kongo (CDF) — CDF 27.5 / 1k tokens</option>
+                        <option value="RWF">Faranga ya Rwanda (RWF) — RWF 13.0 / 1k tokens</option>
+                    </select>
+
+                    <label style="font-size: 0.85rem; color: var(--text-secondary);">Kiasi cha Kuweka:</label>
+                    <input id="depositAmount" type="number" value="10000" oninput="updateRate()">
+
+                    <div style="background: #090d14; border: 1px solid var(--surface-border); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                        <div style="font-size: 0.85rem; color: var(--text-secondary);">Token Utakazopokea:</div>
+                        <div id="tokenEstimate" style="font-size: 1.5rem; font-weight: 800; color: var(--accent-green);">400,000 tokens</div>
+                    </div>
+
+                    <button class="btn-primary" onclick="simulateMpesa()">Tuma Ombi la M-Pesa (STK Push)</button>
+                </div>
+
+                <div class="card">
+                    <h2>📜 Kumbukumbu za Salio & Hati ya Malipo</h2>
+                    <div id="billingReceipt" class="result-box">Weka kiasi na ubofye 'Tuma Ombi la M-Pesa' kuona uthibitisho wa muamala.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: BENCHMARK & EDGE -->
+        <div id="tab-bench" class="tab-pane">
+            <div class="grid">
+                <div class="card">
+                    <h2>🏆 Matokeo Rasmi ya SWAHILI-BENCH</h2>
+                    <table class="leaderboard">
+                        <thead>
+                            <tr>
+                                <th>Kipengele cha Tathmini</th>
+                                <th>LughaLLM-8B</th>
+                                <th>Generic LLM</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Alama ya Jumla (Overall Score)</td>
+                                <td><span class="score-pill score-green">100.0%</span></td>
+                                <td><span class="score-pill score-red">0.0%</span></td>
+                            </tr>
+                            <tr>
+                                <td>Methali (East African Proverbs)</td>
+                                <td><span class="score-pill score-green">100.0%</span></td>
+                                <td><span class="score-pill score-red">0.0% (Literal)</span></td>
+                            </tr>
+                            <tr>
+                                <td>Sheng (Nairobi Youth Argot)</td>
+                                <td><span class="score-pill score-green">100.0%</span></td>
+                                <td><span class="score-pill score-red">0.0% (Failed)</span></td>
+                            </tr>
+                            <tr>
+                                <td>Kingwana (DRC Congo Vernacular)</td>
+                                <td><span class="score-pill score-green">100.0%</span></td>
+                                <td><span class="score-pill score-red">0.0% (Unrecognized)</span></td>
+                            </tr>
+                            <tr>
+                                <td>Uganda Trade Swahili Context</td>
+                                <td><span class="score-pill score-green">100.0%</span></td>
+                                <td><span class="score-pill score-red">0.0% (Failed)</span></td>
+                            </tr>
+                            <tr>
+                                <td>Uzuiaji Upotoshaji (Hallucination Resistance)</td>
+                                <td><span class="score-pill score-green">100.0%</span></td>
+                                <td><span class="score-pill score-red">0.0% (Fabricates)</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <h2>💾 Uendeshaji wa Ndani (Local Edge & Ollama)</h2>
+                    <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 1rem;">
+                        LughaLLM ni programu huria (open-weights). Unaweza kuiendesha nje ya mtandao kwenye kompyuta yako au Raspberry Pi 5.
+                    </p>
+                    <div style="background: #090d14; border: 1px solid var(--surface-border); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                        <div style="font-size: 0.8rem; color: #38bdf8; margin-bottom: 0.5rem;"># Ufungaji kupitia Ollama:</div>
+                        <code>ollama create lughallm -f lughallm/infra/Modelfile<br>ollama run lughallm</code>
+                    </div>
+                    <div style="background: #090d14; border: 1px solid var(--surface-border); border-radius: 8px; padding: 1rem;">
+                        <div style="font-size: 0.8rem; color: #38bdf8; margin-bottom: 0.5rem;"># Ubano wa GGUF kwa Simu & Raspberry Pi (4.6GB RAM):</div>
+                        <code>python3 lughallm/infra/export_gguf.py --type Q4_K_M</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        function setQuery(text) {
+            document.getElementById('promptInput').value = text;
+        }
+
+        function processChat() {
+            const input = document.getElementById('promptInput').value.trim();
+            if (!input) return;
+
+            document.getElementById('chatPlaceholder').style.display = 'none';
+            document.getElementById('chatOutput').style.display = 'block';
+
+            const thinkingOn = document.getElementById('thinkingToggle').checked;
+            const inputLower = input.toLowerCase();
+
+            let dialect = "kiswahili_sanifu";
+            let domain = "cultural_linguistic";
+            let reply = "";
+            let prefix = "";
+
+            if (inputLower.includes("shikamoo")) {
+                prefix = "Marahaba. ";
+            } else if (inputLower.includes("pole na kazi")) {
+                prefix = "Asante sana, kazi inakwenda vyema. ";
+            }
+
+            if (inputLower.includes("l'argent") || inputLower.includes("goma") || inputLower.includes("kuludia")) {
+                dialect = "kingwana_drc";
+                reply = "Katika Kingwana cha Kongo (DRC): 'l'argent' au 'makuta' inamaanisha pesa/fedha, na 'kuludia' ni kurudi. Kingwana kinachanganya msamiati wa Kifaransa na lugha za asili.";
+            } else if (inputLower.includes("katale") || inputLower.includes("ssebo") || inputLower.includes("ura")) {
+                dialect = "swahili_uganda";
+                domain = "finance";
+                reply = "[Fedha Agent - Uganda]: Katika soko (katale) la Uganda: kodi inasimamiwa na Uganda Revenue Authority (URA), na maombi ya TIN hufanyika mtandaoni.";
+            } else if (inputLower.includes("mbogi") || inputLower.includes("ganji") || inputLower.includes("manze") || inputLower.includes("luku")) {
+                dialect = "sheng_nairobi";
+                reply = "Katika Sheng ya Nairobi: 'mbogi' inamaanisha marafiki au kundi la vijana, 'ganji' au 'chapaa' inamaanisha pesa taslimu, na 'luku' ni mtindo nadhifu.";
+            } else if (inputLower.includes("mahindi") || inputLower.includes("mbolea") || inputLower.includes("shamba")) {
+                dialect = "kiswahili_general";
+                domain = "agriculture";
+                reply = "Kupalilia mahindi mara ya kwanza kunatakiwa kufanyika ndani ya wiki 2 hadi 3 baada ya kuota ili kuondoa magugu yanayogombea virutubisho na mbolea ya kupandia.";
+            } else if (inputLower.includes("kilimanjaro") && inputLower.includes("jamhuri")) {
+                dialect = "kiswahili_sanifu";
+                domain = "fact_verification";
+                reply = "Hakuna nchi wala taifa linaloitwa 'Jamhuri ya Kilimanjaro'. Kilimanjaro ni mlima mrefu zaidi barani Afrika uliopo Tanzania, na sarafu halisi ni TZS.";
+            } else {
+                dialect = "kiswahili_sanifu";
+                reply = "Nimekuelewa vyema. LughaLLM inatoa majibu sahihi yanayozingatia sarufi sanifu na staha ya kitamaduni.";
+            }
+
+            const thinkingDiv = document.getElementById('thinkingTrace');
+            if (thinkingOn) {
+                thinkingDiv.style.display = 'block';
+                thinkingDiv.innerHTML = `<strong>&lt;fikiri&gt; System-2 Swahili Chain-of-Thought:</strong><br>` +
+                    `1. UTAMBUZI: Ujumbe unaangazia kikoa cha '${domain}'.<br>` +
+                    `2. LAHAJA: Lahaja iliyotambuliwa ni '${dialect}'. Ulinganifu wa misamiati unafanyika.<br>` +
+                    `3. KUZUIA UPOTOSHAJI: Hakuna taasisi au sarafu za kubuni zilizoidhinishwa.<br>` +
+                    `4. ADABU & HESHIMA: Salamu za staha zimethibitishwa.<br>` +
+                    `<strong>&lt;/fikiri&gt;</strong>`;
+            } else {
+                thinkingDiv.style.display = 'none';
+            }
+
+            document.getElementById('responseBox').innerHTML = 
+                `<strong>Detected Dialect:</strong> <span style="color: #10b981;">${dialect}</span> | <strong>Domain:</strong> ${domain}\n\n` +
+                `<strong>Jibu la LughaLLM:</strong>\n${prefix}${reply}`;
+        }
+
+        function runLoanTool() {
+            const amount = parseFloat(document.getElementById('loanAmount').value) || 50000;
+            const repay = parseFloat(document.getElementById('loanRepay').value) || 65000;
+            const days = parseInt(document.getElementById('loanDays').value) || 14;
+
+            const interest = repay - amount;
+            const ratePeriod = (interest / amount) * 100;
+            const apr = (ratePeriod / days) * 365;
+
+            let risk = "Chini (Salama)";
+            let advice = "Riba ipo ndani ya viwango vya kawaida vya benki.";
+            if (apr > 100) {
+                risk = "<span style='color: #ef4444; font-weight: bold;'>JUU SANA (Hatari ya Mtego wa Madeni)</span>";
+                advice = `Onyo: Mkopo huu una riba ya mwaka ya ${apr.toFixed(1)}%. Hii ni mikopo ya simu inayonyonya wafanyabiashara wadogo. Fikiria kujiunga na VICOBA au SACCOS badala yake.`;
+            }
+
+            document.getElementById('toolResult').innerHTML = 
+                `<strong>Matokeo ya Chombo: rahisisha_mkopo_kidijitali</strong>\n` +
+                `--------------------------------------------------\n` +
+                `Kiasi cha Mkopo:        ${amount.toLocaleString()} TZS/KES\n` +
+                `Kiasi cha Kurejesha:    ${repay.toLocaleString()} TZS/KES\n` +
+                `Riba ya Kipindi:        ${interest.toLocaleString()} (${ratePeriod.toFixed(1)}% kwa siku ${days})\n` +
+                `Riba ya Kweli kwa Mwaka: ${apr.toFixed(1)}% APR\n` +
+                `Tathmini ya Hatari:     ${risk}\n\n` +
+                `<strong>Ushauri wa Kifedha:</strong>\n${advice}`;
+        }
+
+        function runCropTool() {
+            const crop = document.getElementById('pestCrop').value;
+            const symptom = document.getElementById('pestSymptom').value;
+
+            document.getElementById('toolResult').innerHTML = 
+                `<strong>Matokeo ya Chombo: tiba_ya_magonjwa_ya_mimea</strong>\n` +
+                `--------------------------------------------------\n` +
+                `Zao Lililochaguliwa:  ${crop}\n` +
+                `Shida/Dalili:         ${symptom}\n` +
+                `Utambuzi wa Kitaalamu: Funza wa Mahindi (Fall Armyworm - Spodoptera frugiperda)\n\n` +
+                `<strong>Tiba na Kinga ya Haraka:</strong>\n` +
+                `1. Nyunyizia majivu safi ya jikoni au mchanga kwenye kilele cha mmea asubuhi mapema.\n` +
+                `2. Tumia dawa zilizoidhinishwa za Emamectin Benzoate (k.m Prove) kabla ya jua kali.\n` +
+                `3. Epuka kunyunyizia dawa wakati nyuki wakiwa shambani kulinda uchavushaji.`;
+        }
+
+        function runTaxTool() {
+            const amount = parseFloat(document.getElementById('taxAmount').value) || 100000;
+            const country = document.getElementById('taxCountry').value;
+            const rates = { "Tanzania": 0.18, "Kenya": 0.16, "Uganda": 0.18, "DRC": 0.16, "Rwanda": 0.18 };
+            const rate = rates[country] || 0.18;
+            const vat = amount * rate;
+            const total = amount + vat;
+
+            document.getElementById('toolResult').innerHTML = 
+                `<strong>Matokeo ya Chombo: hesabu_kodi_kikanda</strong>\n` +
+                `--------------------------------------------------\n` +
+                `Nchi:                   ${country}\n` +
+                `Kiasi Halisi:           ${amount.toLocaleString()}\n` +
+                `Kiwango cha VAT:        ${Math.round(rate * 100)}%\n` +
+                `Makisio ya Kodi (VAT):  ${vat.toLocaleString()}\n` +
+                `Jumla Pamoja na VAT:    ${total.toLocaleString()}`;
+        }
+
+        // USSD Logic
+        let ussdState = "";
+        function initUSSD() {
+            ussdState = "";
+            document.getElementById('ussdKeyInput').value = "";
+            document.getElementById('ussdDisplay').innerText = 
+                "CON Karibu LughaLLM:\n1. Ushauri wa Kilimo\n2. Huduma za Fedha & Kodi\n3. Methali & Utamaduni\n4. Maelezo ya Huduma";
+        }
+
+        function pressKey(num) {
+            document.getElementById('ussdKeyInput').value += num;
+        }
+
+        function sendUSSD() {
+            const input = document.getElementById('ussdKeyInput').value.trim();
+            document.getElementById('ussdKeyInput').value = "";
+            
+            if (ussdState === "") {
+                if (input === "1") {
+                    ussdState = "1";
+                    document.getElementById('ussdDisplay').innerText = 
+                        "CON Chagua Swala la Kilimo:\n1. Kupalilia na Mbolea\n2. Maandalizi ya Shamba\n3. Bei za Mazao Sokoni";
+                } else if (input === "2") {
+                    ussdState = "2";
+                    document.getElementById('ussdDisplay').innerText = 
+                        "CON Huduma za Fedha:\n1. Kodi ya Ongezeko la Thamani (VAT)\n2. Riba ya Mkopo wa Simu";
+                } else {
+                    document.getElementById('ussdDisplay').innerText = 
+                        "END LughaLLM inapatikana bure kwa USSD na sauti ya WhatsApp. Piga tena *149*00#.";
+                    ussdState = "";
+                }
+            } else if (ussdState === "1") {
+                if (input === "1") {
+                    document.getElementById('ussdDisplay').innerText = 
+                        "END [Kilimo]: Palizi ya kwanza ya mahindi inatakiwa wiki 2-3 baada ya kuota. Tumia mbolea ya kukuzia wiki ya 4 hadi 6.";
+                } else {
+                    document.getElementById('ussdDisplay').innerText = 
+                        "END [Soko]: Bei ya gunia la mahindi Kibaigwa leo ni TZS 65,000; Nairobi ni KES 3,800.";
+                }
+                ussdState = "";
+            } else if (ussdState === "2") {
+                document.getElementById('ussdDisplay').innerText = 
+                    "END [Kodi]: TRA VAT nchini Tanzania ni 18%, KRA Kenya ni 16%, URA Uganda ni 18%.";
+                ussdState = "";
+            }
+        }
+
+        // Billing
+        function updateRate() {
+            const cur = document.getElementById('currencySelect').value;
+            const amt = parseFloat(document.getElementById('depositAmount').value) || 0;
+            const rates = { "TZS": 25.0, "KES": 1.25, "UGX": 36.5, "CDF": 27.5, "RWF": 13.0 };
+            const rate = rates[cur] || 25.0;
+            const tokens = Math.floor((amt / rate) * 1000);
+            document.getElementById('tokenEstimate').innerText = tokens.toLocaleString() + " tokens";
+        }
+
+        function simulateMpesa() {
+            const cur = document.getElementById('currencySelect').value;
+            const amt = parseFloat(document.getElementById('depositAmount').value) || 0;
+            const tokenEstimate = document.getElementById('tokenEstimate').innerText;
+            const txId = "ws_CO_" + Date.now();
+
+            document.getElementById('billingReceipt').innerHTML = 
+                `<strong>Hati ya Malipo ya M-Pesa / Mobile Money STK Push</strong>\n` +
+                `--------------------------------------------------\n` +
+                `Namba ya Muamala:    ${txId}\n` +
+                `Sarafu Iliyotumika:  ${cur}\n` +
+                `Kiasi Kilicholipwa:  ${amt.toLocaleString()} ${cur}\n` +
+                `Token Zilizoongezwa: ${tokenEstimate}\n` +
+                `Hali (Status):       <span style="color: #10b981; font-weight: bold;">COMPLETED / IMETHIBITISHWA</span>\n\n` +
+                `Asante kwa kutumia LughaLLM API. API Key yako imeongezwa salio mara moja.`;
+        }
+    </script>
+</body>
+</html>

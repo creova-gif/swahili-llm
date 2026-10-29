@@ -1,0 +1,137 @@
+[
+  {
+    "id": "methali_001",
+    "category": "methali",
+    "dialect": "kiswahili_sanifu",
+    "prompt": "Eleza maana halisi na funzo linalotokana na methali: 'Mvumilivu hula mbivu'. Toa mfano katika muktadha wa maisha ya kawaida.",
+    "expected_keywords": ["subira", "uvumilivu", "matunda", "mafanikio"],
+    "negative_keywords": ["haraka", "kukata tamaa"],
+    "reference_explanation": "Methali hii inafundisha kuwa mtu mwenye subira hupata matokeo mazuri au mafanikio hatimaye, tofauti na mtu anayekimbilia mambo bila subira."
+  },
+  {
+    "id": "methali_002",
+    "category": "methali",
+    "dialect": "kiswahili_sanifu",
+    "prompt": "Ni methali gani ya Kiswahili inayomaanisha kuwa 'Umoja ni nguvu, utengano ni udhaifu'?",
+    "expected_keywords": ["umoja ni nguvu", "utengano ni udhaifu"],
+    "negative_keywords": ["asiyekujua hakuthamini"],
+    "reference_explanation": "Methali inayotambulika zaidi ni 'Umoja ni nguvu, utengano ni udhaifu'."
+  },
+  {
+    "id": "methali_003",
+    "category": "methali",
+    "dialect": "kiswahili_sanifu",
+    "prompt": "Nini maana ya: 'Mtaka cha mvunguni sharti ainame'?",
+    "expected_keywords": ["bidii", "juhudi", "kufanya kazi", "kujitolea"],
+    "negative_keywords": ["bila juhudi", "kula bila kufanya kazi"],
+    "reference_explanation": "Kupata kitu chenye thamani kunahitaji juhudi, kujitolea na kustahimili ugumu."
+  },
+  {
+    "id": "sheng_001",
+    "category": "sheng",
+    "dialect": "sheng_nairobi",
+    "prompt": "Tafsiri sentensi hii ya Sheng kwa Kiswahili Sanifu: 'Manze juzi nilicheki mbogi yangu kwa base, tukaamua kuchanga ganji ya luku.'",
+    "expected_keywords": ["marafiki", "kikundi", "pesa", "nguo", "mahali pa mkutano"],
+    "negative_keywords": ["mashua", "ng'ombe"],
+    "reference_explanation": "Maana yake: 'Kwa hakika juzi niliona marafiki zangu kijiweni/mahali pa kukutania, tukaamua kuchanga pesa za kununulia nguo mpya.'"
+  },
+  {
+    "id": "sheng_002",
+    "category": "sheng",
+    "dialect": "sheng_nairobi",
+    "prompt": "Katika Sheng ya Nairobi, neno 'chapaa' au 'ganji' au 'dau' linamaanisha nini?",
+    "expected_keywords": ["pesa", "fedha"],
+    "negative_keywords": ["chakula", "mchezo wa soka"],
+    "reference_explanation": "Maneno 'chapaa', 'ganji', na 'dau' katika Sheng yote yanamaanisha pesa/fedha."
+  },
+  {
+    "id": "sheng_003",
+    "category": "sheng",
+    "dialect": "sheng_nairobi",
+    "prompt": "Ujumbe unasema: 'Niko rada, usistress nitashuka stage ya maji'. Ni nini maana ya 'niko rada'?",
+    "expected_keywords": ["makini", "nipo macho", "nifahamu", "najiandaa"],
+    "negative_keywords": ["kifaa cha rada ya ndege", "ugonjwa"],
+    "reference_explanation": "'Niko rada' inamaanisha kuwa makini, kujua hali inavyoendelea au kutambua kinachotakiwa kufanyika."
+  },
+  {
+    "id": "context_001",
+    "category": "east_africa_context",
+    "dialect": "kiswahili_sanifu",
+    "prompt": "Mkulima wa mahindi Morogoro, Tanzania anataka kujua: Nini maana ya 'kuchanja mbolea' na ni wakati gani anapaswa kupalilia mara ya kwanza baada ya kupanda?",
+    "expected_keywords": ["kupalilia", "wiki mbili hadi tatu", "magugu", "rutuba"],
+    "negative_keywords": ["kuua mifugo", "mwaka ujao"],
+    "reference_explanation": "Palizi ya kwanza hufanyika wiki 2 hadi 3 baada ya kuota ili kuondoa magugu yanayogombea virutubisho na mmea mchanga."
+  },
+  {
+    "id": "context_002",
+    "category": "east_africa_context",
+    "dialect": "kiswahili_sanifu",
+    "prompt": "Mjasiriamali anayeanza biashara Dar es Salaam anahitaji kupata TIN kutoka Mamlaka ya Mapato Tanzania (TRA). Eleza kifupi hatua za kufuata.",
+    "expected_keywords": ["TRA", "TIN", "NIDA", "namba ya utambulisho", "usajili"],
+    "negative_keywords": ["IRS", "Social Security Number"],
+    "reference_explanation": "Kupata Namba ya Utambulisho wa Mlipakodi (TIN) kutoka TRA kunahitaji kitambulisho cha Taifa (NIDA), kujaza fomu ya maombi mtandaoni au ofisi ya TRA, na kuthibitisha maelezo ya biashara."
+  },
+  {
+    "id": "context_003",
+    "category": "east_africa_context",
+    "dialect": "kiswahili_sanifu",
+    "prompt": "Mteja ametuma pesa kupitia M-Pesa lakini ametuma kwa namba isiyo sahihi. Je, nini utaratibu rasmi wa kurudisha muamala (reversal)?",
+    "expected_keywords": ["SMS", "ujumbe", "456", "reversal", "Safaricom", "Vodacom", "huduma kwa wateja"],
+    "negative_keywords": ["kupiga polisi kwanza", "kuweka benki ya New York"],
+    "reference_explanation": "Mteja hutuma ujumbe wa muamala kwenda namba ya huduma (k.m. 456 au kupitia menyu/programu) kusimamisha muamala kabla pesa hazijatolewa na mpokeaji."
+  },
+  {
+    "id": "hallucination_001",
+    "category": "hallucination_resistance",
+    "dialect": "kiswahili_sanifu",
+    "prompt": "Nani alikuwa Rais wa kwanza wa Jamhuri ya Muungano wa Tanzania baada ya muungano wa mwaka 1964?",
+    "expected_keywords": ["Mwalimu Julius Kambarage Nyerere", "Julius Nyerere"],
+    "negative_keywords": ["Jomo Kenyatta", "Idi Amin", "Nelson Mandela"],
+    "reference_explanation": "Rais wa kwanza wa Jamhuri ya Muungano wa Tanzania alikuwa Mwalimu Julius Kambarage Nyerere, na Makamu wake wa Kwanza alikuwa Sheikh Abeid Amani Karume."
+  },
+  {
+    "id": "hallucination_002",
+    "category": "hallucination_resistance",
+    "dialect": "kiswahili_sanifu",
+    "prompt": "Kuna nchi inaitwa 'Jamhuri ya Kilimanjaro' barani Afrika yenye sarafu inayoitwa 'Kili'? Jibu kwa ukweli.",
+    "expected_keywords": ["hakuna", "Kilimanjaro ni mlima", "Tanzania", "sio nchi"],
+    "negative_keywords": ["ndiyo ipo", "inaongozwa na rais"],
+    "reference_explanation": "Hakuna nchi kama hiyo. Mlima Kilimanjaro upo nchini Tanzania, na sarafu ya Tanzania ni Shilingi ya Tanzania (TZS)."
+  },
+  {
+    "id": "kingwana_001",
+    "category": "kingwana_drc",
+    "dialect": "kingwana_drc",
+    "prompt": "Katika Kiswahili cha Kingwana kinachozungumzwa mashariki mwa Jamhuri ya Kidemokrasia ya Kongo (DRC), maana ya 'l'argent' au 'makuta' ni nini?",
+    "expected_keywords": ["pesa", "fedha", "Congo", "Kingwana"],
+    "negative_keywords": ["mashua", "samaki"],
+    "reference_explanation": "Katika Kingwana cha Kongo (DRC), 'l'argent' (kutoka Kifaransa) au 'makuta' linamaanisha pesa au fedha taslimu."
+  },
+  {
+    "id": "uganda_001",
+    "category": "swahili_uganda",
+    "dialect": "swahili_uganda",
+    "prompt": "Nchini Uganda, neno 'katale' katika muktadha wa kibiashara na kilimo linamaanisha nini, na mamlaka gani inakusanya kodi?",
+    "expected_keywords": ["soko", "Uganda", "kodi", "URA"],
+    "negative_keywords": ["TRA", "KRA"],
+    "reference_explanation": "Nchini Uganda 'katale' linamaanisha soko au mahali pa biashara, na kodi hukusanywa na Uganda Revenue Authority (URA)."
+  },
+  {
+    "id": "pan_africa_tax_001",
+    "category": "pan_african_institutions",
+    "dialect": "kiswahili_sanifu",
+    "prompt": "Taja mamlaka za kodi kwa nchi hizi nne za Jumuiya ya Afrika Mashariki na Kati: Kenya, Tanzania, Uganda, na DRC.",
+    "expected_keywords": ["KRA", "TRA", "URA", "DGI"],
+    "negative_keywords": ["IRS", "HMRC"],
+    "reference_explanation": "Mamlaka za kodi ni: Kenya ni KRA, Tanzania ni TRA, Uganda ni URA, na Jamhuri ya Kidemokrasia ya Kongo (DRC) ni DGI."
+  },
+  {
+    "id": "regional_languages_001",
+    "category": "pan_african_institutions",
+    "dialect": "kiswahili_sanifu",
+    "prompt": "Je, Kiswahili kinatambuliwa rasmi kama lugha ya kufanyia kazi katika Umoja wa Afrika (AU) na SADC?",
+    "expected_keywords": ["ndiyo", "AU", "SADC", "lugha rasmi"],
+    "negative_keywords": ["hapana", "kinakataliwa"],
+    "reference_explanation": "Ndiyo, Kiswahili kilitangazwa rasmi kama lugha rasmi ya kazi katika Umoja wa Afrika (AU) na Jumuiya ya Maendeleo ya Kusini mwa Afrika (SADC)."
+  }
+]

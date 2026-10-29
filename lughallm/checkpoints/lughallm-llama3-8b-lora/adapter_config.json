@@ -1,0 +1,1 @@
+{"base_model_name_or_path": "meta-llama/Meta-Llama-3-8B-Instruct", "r": 16, "lora_alpha": 32, "target_modules": ["q_proj", "v_proj"]}
