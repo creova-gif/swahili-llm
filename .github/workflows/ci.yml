@@ -40,3 +40,9 @@ jobs:
           pip install .
           lughallm --help
           lughallm bench --model lughallm
+
+      - name: Verify Installed Package Ships SWAHILI-BENCH Dataset
+        working-directory: ${{ runner.temp }}
+        run: |
+          python -c "import importlib.resources as r; p = r.files('lughallm.src.benchmark') / 'dataset.json'; assert p.is_file(), f'dataset.json missing from installed package: {p}'; print('OK', p)"
+          lughallm bench --model lughallm

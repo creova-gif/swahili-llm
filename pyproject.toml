@@ -51,3 +51,8 @@ dev = [
 
 [project.scripts]
 lughallm = "lughallm.cli:main"
+
+[tool.setuptools.package-data]
+# Ship the SWAHILI-BENCH dataset with the package so `lughallm bench`
+# works after `pip install .` (SwahiliBenchRunner loads it next to the module).
+"lughallm.src.benchmark" = ["dataset.json"]
