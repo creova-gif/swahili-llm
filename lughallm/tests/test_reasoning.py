@@ -52,6 +52,12 @@ class TestSwahiliReasoningEngine(unittest.TestCase):
         self.assertIn("</fikiri>", resp_reasoned)
         self.assertTrue(resp_reasoned.endswith(base_resp))
 
+    def test_apply_eloquent_style(self):
+        robotic = "Kwa ujumla, tunaweza kusema kwamba kilimo cha umwagiliaji kinaleta faida kubwa."
+        clean = self.engine.apply_eloquent_style(robotic, "kiswahili_sanifu")
+        self.assertFalse(clean.startswith("Kwa ujumla, tunaweza kusema kwamba"))
+        self.assertTrue(clean.startswith("kilimo cha umwagiliaji"))
+
     def test_adabu_and_politeness(self):
         # 1. Elder greeting Shikamoo -> Marahaba
         resp = self.engine.apply_adabu_and_politeness("Karibu.", "Shikamoo mwalimu.", "kiswahili_sanifu")
@@ -139,6 +145,14 @@ class TestAgenticToolRegistry(unittest.TestCase):
 
 @unittest.skipUnless(HAS_FASTAPI, "FastAPI / TestClient dependencies not installed.")
 class TestReasoningAndToolsAPI(unittest.TestCase):
+
+    def test_sovereign_status_endpoint(self):
+        res = client.get("/v1/sovereign/status")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "air_gapped_compliant")
+        self.assertTrue(data["cloud_leakage_prevented"])
+        self.assertEqual(data["telemetry_egress"], "blocked_by_design")
 
     def test_list_tools_endpoint(self):
         res = client.get("/v1/tools")

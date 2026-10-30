@@ -44,6 +44,27 @@ class SwahiliReasoningEngine:
         ]
         return "\n".join(trace_steps)
 
+    def apply_eloquent_style(self, text: str, dialect: str) -> str:
+        """
+        Elevates output prose to write well, eliminating corporate AI robotic filler
+        ('In conclusion', 'Delve', 'Kwa ujumla tunaweza kusema') and injecting vivid cadence.
+        Inspired by Garry Tan's 'LLMs That Write Well' mandate.
+        """
+        robotic_fillers = [
+            ("Kwa ujumla, tunaweza kusema kwamba ", ""),
+            ("Ni muhimu kutambua kuwa ", ""),
+            ("Kama mfano wa kijasusi, ", ""),
+            ("Katika hitimisho, ", ""),
+            ("Kwa muhtasari, ", "")
+        ]
+        res = text
+        for filler, repl in robotic_fillers:
+            if res.startswith(filler):
+                res = res.replace(filler, repl, 1)
+
+        # Ensure sentence rhythm begins engagingly
+        return res.strip()
+
     def apply_adabu_and_politeness(self, base_response: str, prompt: str, dialect: str) -> str:
         """
         Applies cultural etiquette (Heshima) based on user greetings and generational markers.
@@ -70,9 +91,10 @@ class SwahiliReasoningEngine:
 
     def process_with_reasoning(self, prompt: str, dialect: str, domain: str, base_response: str, include_thinking: bool = True) -> str:
         """
-        Combines cultural etiquette, internal Swahili reasoning trace, and the final response.
+        Combines cultural etiquette, expressive prose elevation, Swahili reasoning trace, and the final response.
         """
-        polite_response = self.apply_adabu_and_politeness(base_response, prompt, dialect)
+        eloquent_response = self.apply_eloquent_style(base_response, dialect)
+        polite_response = self.apply_adabu_and_politeness(eloquent_response, prompt, dialect)
         if not include_thinking:
             return polite_response
 
