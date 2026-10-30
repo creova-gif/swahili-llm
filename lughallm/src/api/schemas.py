@@ -118,3 +118,9 @@ class AudioTranscriptionResponse(BaseModel):
     language: str = "sw"
     duration: float = 0.0
     encoding: str = "audio/ogg-opus"
+
+
+class ToolExecutionRequest(BaseModel):
+    name: str = Field(..., description="Registered tool name", example="hesabu_kodi_kikanda")
+    arguments: Dict[str, Any] = Field(default_factory=dict, description="Arguments dictionary for the tool")
+

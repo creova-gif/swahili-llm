@@ -7,6 +7,7 @@ import uuid
 import os
 import time
 import asyncio
+from typing import Optional, Dict, Any, List
 from fastapi import FastAPI, HTTPException, Request, Depends, Query, status
 from fastapi.responses import JSONResponse, FileResponse, PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,7 +30,8 @@ from lughallm.src.api.schemas import (
     KeyBalanceResponse,
     USSDPayload,
     AudioTranscriptionRequest,
-    AudioTranscriptionResponse
+    AudioTranscriptionResponse,
+    ToolExecutionRequest
 )
 from lughallm.src.orchestrator.agent import LughaOrchestrator
 from lughallm.src.benchmark.swahili_bench import SwahiliBenchRunner
@@ -389,9 +391,9 @@ def list_available_tools():
 
 
 @app.post("/v1/tools/execute")
-async def execute_tool(tool_name: str, arguments: dict):
+async def execute_tool(req: ToolExecutionRequest):
     """
     Executes a registered agentic tool by name with arguments.
     """
-    res = await asyncio.to_thread(tool_registry.execute_tool, tool_name, arguments)
-    return res
+    res = await asyncio.to_thread(tool_registry.execute_tool, req.name, req.arguments)
+    return {"status": "success", "tool": req.name, "result": res}
