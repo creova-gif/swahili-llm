@@ -6,6 +6,7 @@ and telecom verification across East & Central Africa.
 
 from typing import Dict, Any, List, Optional
 import json
+import os
 
 
 class ToolRegistry:
@@ -121,6 +122,61 @@ class ToolRegistry:
             },
             func=self._tool_crop_disease
         )
+
+        # 6. Local-First Codebase & Documentation Search (Local RAG)
+        self.register(
+            name="tafuta_kwenye_mradi",
+            description="Tafuta maandishi ya msimbo au nyaraka ndani ya folda za mradi wa ndani (100% offline RAG).",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "neno": {"type": "string", "description": "Neno au swala la msimbo unalotafuta"},
+                    "njia_ya_folda": {"type": "string", "description": "Njia ya folda ya mradi (chaguo-msingi ni folda ya sasa)"}
+                },
+                "required": ["neno"]
+            },
+            func=self._tool_local_code_search
+        )
+
+    def _tool_local_code_search(self, neno: str, njia_ya_folda: str = ".") -> Dict[str, Any]:
+        """Performs air-gapped local filesystem search over code and markdown files."""
+        matches = []
+        neno_lower = neno.lower()
+        allowed_exts = {".py", ".md", ".json", ".yaml", ".yml", ".html", ".sh", ".toml"}
+        
+        target_dir = os.path.abspath(njia_ya_folda)
+        for root, dirs, files in os.walk(target_dir):
+            if any(part.startswith(".") or part in ["__pycache__", "build", "dist", "node_modules", ".git"] for part in root.split(os.sep)):
+                continue
+            for file in files:
+                ext = os.path.splitext(file)[1].lower()
+                if ext in allowed_exts:
+                    fpath = os.path.join(root, file)
+                    try:
+                        with open(fpath, "r", encoding="utf-8", errors="ignore") as f:
+                            for line_idx, line in enumerate(f, 1):
+                                if neno_lower in line.lower():
+                                    rel_path = os.path.relpath(fpath, target_dir)
+                                    matches.append({
+                                        "faili": rel_path,
+                                        "mstari": line_idx,
+                                        "maudhui": line.strip()[:140]
+                                    })
+                                    if len(matches) >= 8:
+                                        break
+                    except Exception:
+                        pass
+                if len(matches) >= 8:
+                    break
+            if len(matches) >= 8:
+                break
+
+        return {
+            "neno_lililotafutwa": neno,
+            "idadi_ya_matokeo": len(matches),
+            "matokeo": matches,
+            "hali": "100% Air-Gapped Local Search"
+        }
 
     def _tool_market_prices(self, zao: str, mji: str) -> Dict[str, Any]:
         zao_lower = zao.lower()

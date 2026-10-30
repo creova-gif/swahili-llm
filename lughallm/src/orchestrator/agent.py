@@ -5,7 +5,11 @@ Handles Multi-Dialect Detection (Sanifu, Sheng, Kingwana, Ugandan, Coastal) and 
 """
 
 import re
-from typing import Dict, Any, Tuple
+import os
+import json
+import urllib.request
+import urllib.error
+from typing import Dict, Any, Tuple, Optional
 
 
 class DialectDetector:
@@ -231,6 +235,37 @@ class LughaOrchestrator:
         self.fin_agent = PanAfricanFinancialAgent()
         self.cultural_agent = PanAfricanCulturalAgent()
 
+    def _query_local_daemon(self, user_message: str, dialect: str, domain: str) -> Optional[str]:
+        """
+        Attempts inference against a local Ollama or llama-server daemon if active on localhost,
+        providing true local-first LLM inference with zero cloud dependency.
+        Falls back to None if the local daemon is not running.
+        """
+        local_url = os.getenv("LUGHALLM_LOCAL_URL", "http://127.0.0.1:11434/api/generate")
+        model_name = os.getenv("LUGHALLM_LOCAL_MODEL", "lughallm")
+        try:
+            payload = {
+                "model": model_name,
+                "prompt": user_message,
+                "system": (
+                    f"Wewe ni LughaLLM. Lahaja iliyotambuliwa ni {dialect}, kikoa ni {domain}. "
+                    "Majibu yawe kwa Kiswahili fasaha chenye staha na adabu ya kitamaduni."
+                ),
+                "stream": False,
+                "options": {"temperature": 0.3}
+            }
+            req = urllib.request.Request(
+                local_url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=1.0) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                return data.get("response")
+        except Exception:
+            return None
+
     def route_and_execute(self, user_message: str, forced_dialect: str = "auto") -> Dict[str, Any]:
         dialect = self.detector.detect(user_message) if forced_dialect == "auto" else forced_dialect
         msg_lower = user_message.lower()
@@ -246,11 +281,18 @@ class LughaOrchestrator:
             active_agent = self.cultural_agent
             domain = "cultural_linguistic"
 
-        response_text = active_agent.process(user_message, dialect)
+        # Check local-first Ollama/llama.cpp daemon first
+        local_response = self._query_local_daemon(user_message, dialect, domain)
+        if local_response:
+            response_text = local_response
+            agent_name = "LughaLLM_Local_Edge"
+        else:
+            response_text = active_agent.process(user_message, dialect)
+            agent_name = active_agent.name
 
         return {
             "response": response_text,
             "detected_dialect": dialect,
             "routed_domain": domain,
-            "agent_name": active_agent.name
+            "agent_name": agent_name
         }
