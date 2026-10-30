@@ -60,6 +60,30 @@ class TokenLedgerDB:
                     timestamp INTEGER NOT NULL
                 )
             """)
+            # Chatbot Multi-Turn Conversation Threads
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS chat_threads (
+                    thread_id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    dialect TEXT NOT NULL DEFAULT 'auto',
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL
+                )
+            """)
+            # Chatbot Messages History
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS chat_messages (
+                    message_id TEXT PRIMARY KEY,
+                    thread_id TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    reasoning_trace TEXT,
+                    tokens INTEGER NOT NULL DEFAULT 0,
+                    timestamp INTEGER NOT NULL,
+                    FOREIGN KEY (thread_id) REFERENCES chat_threads(thread_id)
+                )
+            """)
             conn.commit()
 
             # Seed default demo key if none exists
@@ -132,6 +156,74 @@ class TokenLedgerDB:
             """, (request_id, api_key, tokens, cost_tzs, dialect, domain, int(time.time())))
             conn.commit()
             return True
+
+    def create_thread(self, title: str, user_id: str = "guest", dialect: str = "auto") -> Dict[str, Any]:
+        """Creates a new multi-turn conversation thread."""
+        thread_id = f"th_{uuid.uuid4().hex[:12]}"
+        now = int(time.time())
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO chat_threads (thread_id, user_id, title, dialect, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (thread_id, user_id, title, dialect, now, now))
+            conn.commit()
+        return {
+            "thread_id": thread_id,
+            "user_id": user_id,
+            "title": title,
+            "dialect": dialect,
+            "created_at": now,
+            "updated_at": now
+        }
+
+    def list_threads(self, user_id: str = "guest", limit: int = 20) -> List[Dict[str, Any]]:
+        """Lists recent conversation threads for a user."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM chat_threads 
+                WHERE user_id = ? 
+                ORDER BY updated_at DESC LIMIT ?
+            """, (user_id, limit))
+            rows = cursor.fetchall()
+            return [dict(r) for r in rows]
+
+    def add_chat_message(self, thread_id: str, role: str, content: str, reasoning_trace: Optional[str] = None, tokens: int = 0) -> Dict[str, Any]:
+        """Appends a message to a conversation thread and updates thread timestamp."""
+        msg_id = f"msg_{uuid.uuid4().hex[:12]}"
+        now = int(time.time())
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO chat_messages (message_id, thread_id, role, content, reasoning_trace, tokens, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (msg_id, thread_id, role, content, reasoning_trace, tokens, now))
+            cursor.execute("""
+                UPDATE chat_threads SET updated_at = ? WHERE thread_id = ?
+            """, (now, thread_id))
+            conn.commit()
+        return {
+            "message_id": msg_id,
+            "thread_id": thread_id,
+            "role": role,
+            "content": content,
+            "reasoning_trace": reasoning_trace,
+            "tokens": tokens,
+            "timestamp": now
+        }
+
+    def get_thread_messages(self, thread_id: str, limit: int = 50) -> List[Dict[str, Any]]:
+        """Retrieves messages for a conversation thread in chronological order."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM chat_messages 
+                WHERE thread_id = ? 
+                ORDER BY timestamp ASC LIMIT ?
+            """, (thread_id, limit))
+            rows = cursor.fetchall()
+            return [dict(r) for r in rows]
 
 
 # Global default instance

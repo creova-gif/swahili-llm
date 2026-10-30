@@ -124,3 +124,16 @@ class ToolExecutionRequest(BaseModel):
     name: str = Field(..., description="Registered tool name", example="hesabu_kodi_kikanda")
     arguments: Dict[str, Any] = Field(default_factory=dict, description="Arguments dictionary for the tool")
 
+
+class CreateThreadRequest(BaseModel):
+    title: Optional[str] = "Mazungumzo Mapya"
+    dialect: Optional[str] = "auto"
+    user_id: Optional[str] = "guest"
+
+
+class ThreadMessageRequest(BaseModel):
+    content: str = Field(..., description="User message text")
+    include_thinking: Optional[bool] = True
+    dialect: Optional[str] = "auto"
+
+

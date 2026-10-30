@@ -64,6 +64,41 @@ class TestTokenLedger(unittest.TestCase):
         )
         self.assertEqual(new_bal, 2600)
 
+    def test_multi_turn_thread_and_messages(self):
+        thread = self.db.create_thread(title="Kilimo cha Mahindi", user_id="user_tz_01", dialect="kiswahili_sanifu")
+        self.assertTrue(thread["thread_id"].startswith("th_"))
+        self.assertEqual(thread["title"], "Kilimo cha Mahindi")
+
+        # Add user message
+        m1 = self.db.add_chat_message(
+            thread_id=thread["thread_id"],
+            role="user",
+            content="Habari, nina shamba Morogoro, nianze na mbolea gani?",
+            tokens=24
+        )
+        self.assertTrue(m1["message_id"].startswith("msg_"))
+
+        # Add assistant message with reasoning trace
+        m2 = self.db.add_chat_message(
+            thread_id=thread["thread_id"],
+            role="assistant",
+            content="Marahaba! Kwa Morogoro, anza na mbolea ya kupandia kama DAP au Minjingu.",
+            reasoning_trace="<fikiri>1. Morogoro ni ukanda wa mashariki...</fikiri>",
+            tokens=32
+        )
+
+        # Retrieve messages
+        messages = self.db.get_thread_messages(thread["thread_id"])
+        self.assertEqual(len(messages), 2)
+        self.assertEqual(messages[0]["role"], "user")
+        self.assertEqual(messages[1]["role"], "assistant")
+        self.assertIn("Minjingu", messages[1]["content"])
+
+        # List user threads
+        threads = self.db.list_threads("user_tz_01")
+        self.assertEqual(len(threads), 1)
+        self.assertEqual(threads[0]["thread_id"], thread["thread_id"])
+
 
 if __name__ == "__main__":
     unittest.main()

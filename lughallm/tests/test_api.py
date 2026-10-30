@@ -95,6 +95,45 @@ class TestAPI(unittest.TestCase):
         data = res.json()
         self.assertIn("greater than zero", data["detail"])
 
+    def test_threads_api_lifecycle(self):
+        # 1. Create thread
+        res = client.post("/v1/threads", json={"title": "Kilimo cha Maharage", "user_id": "test_user_42"})
+        self.assertEqual(res.status_code, 200)
+        thread = res.json()
+        self.assertIn("thread_id", thread)
+        t_id = thread["thread_id"]
+
+        # 2. Send multi-turn message
+        msg_res = client.post(f"/v1/threads/{t_id}/messages", json={
+            "content": "Habari, nataka kujua magonjwa ya maharage",
+            "include_thinking": True
+        })
+        self.assertEqual(msg_res.status_code, 200)
+        msg_data = msg_res.json()
+        self.assertIn("message", msg_data)
+        self.assertEqual(msg_data["message"]["role"], "assistant")
+        self.assertIsNotNone(msg_data["message"]["reasoning_trace"])
+
+        # 3. Retrieve thread messages
+        hist_res = client.get(f"/v1/threads/{t_id}/messages")
+        self.assertEqual(hist_res.status_code, 200)
+        hist = hist_res.json()
+        self.assertEqual(len(hist["messages"]), 2)
+        self.assertEqual(hist["messages"][0]["role"], "user")
+        self.assertEqual(hist["messages"][1]["role"], "assistant")
+
+    def test_chat_completions_streaming(self):
+        payload = {
+            "model": "lughallm-llama3-8b",
+            "messages": [{"role": "user", "content": "Habari za mchana"}],
+            "stream": True
+        }
+        res = client.post("/v1/chat/completions", json=payload)
+        self.assertEqual(res.status_code, 200)
+        self.assertIn("text/event-stream", res.headers.get("content-type", ""))
+        self.assertIn("data: ", res.text)
+        self.assertIn("[DONE]", res.text)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -6,10 +6,11 @@ OpenAI-compatible inference server with Swahili cultural grounding and dialect a
 import uuid
 import os
 import time
+import json
 import asyncio
 from typing import Optional, Dict, Any, List
 from fastapi import FastAPI, HTTPException, Request, Depends, Query, status
-from fastapi.responses import JSONResponse, FileResponse, PlainTextResponse
+from fastapi.responses import JSONResponse, FileResponse, PlainTextResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from lughallm.src.api.config import settings
@@ -31,7 +32,9 @@ from lughallm.src.api.schemas import (
     USSDPayload,
     AudioTranscriptionRequest,
     AudioTranscriptionResponse,
-    ToolExecutionRequest
+    ToolExecutionRequest,
+    CreateThreadRequest,
+    ThreadMessageRequest
 )
 from lughallm.src.orchestrator.agent import LughaOrchestrator
 from lughallm.src.benchmark.swahili_bench import SwahiliBenchRunner
@@ -232,6 +235,24 @@ async def chat_completions(req: ChatCompletionRequest, key_info: dict = Depends(
             detail=f"Salio lako la token halitoshi ({key_info['balance_tokens']} zimebaki, unahitaji {total_tokens}). Tafadhali ongeza salio kupitia M-Pesa."
         )
 
+    if req.stream:
+        async def event_generator():
+            words = response_content.split(" ")
+            for i, word in enumerate(words):
+                chunk = word + (" " if i < len(words) - 1 else "")
+                data = {
+                    "id": req_id,
+                    "object": "chat.completion.chunk",
+                    "created": int(time.time()),
+                    "model": req.model,
+                    "choices": [{"index": 0, "delta": {"content": chunk}, "finish_reason": None}],
+                    "detected_dialect": detected_dialect
+                }
+                yield f"data: {json.dumps(data)}\n\n"
+                await asyncio.sleep(0.015)
+            yield "data: [DONE]\n\n"
+        return StreamingResponse(event_generator(), media_type="text/event-stream")
+
     return ChatCompletionResponse(
         id=req_id,
         model=req.model,
@@ -250,6 +271,68 @@ async def chat_completions(req: ChatCompletionRequest, key_info: dict = Depends(
         ),
         detected_dialect=detected_dialect
     )
+
+
+@app.post("/v1/threads")
+def create_thread(req: CreateThreadRequest):
+    """
+    Creates a new multi-turn conversation session thread.
+    """
+    thread = ledger.create_thread(title=req.title or "Mazungumzo Mapya", user_id=req.user_id or "guest", dialect=req.dialect or "auto")
+    return thread
+
+
+@app.get("/v1/threads")
+def list_threads(user_id: str = "guest"):
+    """
+    Lists recent conversation threads for a user.
+    """
+    return {"threads": ledger.list_threads(user_id=user_id)}
+
+
+@app.get("/v1/threads/{thread_id}/messages")
+def get_thread_messages(thread_id: str):
+    """
+    Retrieves full message history for a conversation thread.
+    """
+    return {"thread_id": thread_id, "messages": ledger.get_thread_messages(thread_id=thread_id)}
+
+
+@app.post("/v1/threads/{thread_id}/messages")
+async def send_thread_message(thread_id: str, req: ThreadMessageRequest):
+    """
+    Sends a message within a multi-turn conversation thread.
+    Maintains context, performs dialect detection, and returns the assistant reply.
+    """
+    user_tokens = len(req.content.split()) * 2
+    ledger.add_chat_message(thread_id=thread_id, role="user", content=req.content, tokens=user_tokens)
+
+    # Route and execute with Swahili multi-agent orchestrator
+    result = await asyncio.to_thread(orchestrator.route_and_execute, req.content, req.dialect or "auto")
+    resp_text = result["response"]
+    dialect = result["detected_dialect"]
+
+    reasoning_trace = None
+    if req.include_thinking:
+        reasoning_trace = reasoning_engine.generate_reasoning_trace(
+            prompt=req.content,
+            dialect=dialect,
+            domain=result.get("routed_domain", "general")
+        )
+
+    asst_tokens = len(resp_text.split()) * 2
+    asst_msg = ledger.add_chat_message(
+        thread_id=thread_id,
+        role="assistant",
+        content=resp_text,
+        reasoning_trace=reasoning_trace,
+        tokens=asst_tokens
+    )
+    return {
+        "message": asst_msg,
+        "dialect": dialect,
+        "domain": result.get("routed_domain", "general")
+    }
 
 
 @app.post("/v1/benchmark/run")
