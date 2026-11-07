@@ -51,3 +51,10 @@ dev = [
 
 [project.scripts]
 lughallm = "lughallm.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["lughallm*"]
+
+[tool.setuptools.package-data]
+"lughallm.src.benchmark" = ["dataset.json"]
+"lughallm.src.training" = ["*.jsonl"]

@@ -1,52 +1,732 @@
 """
-Dataset preparation and formatting pipeline for LughaLLM.
-Converts raw East African text, proverbs, and Sheng dialogues into instruction-tuning format.
+LughaLLM Production Dataset Preparation and Preprocessing Pipeline.
+
+Supports:
+- Diverse regional dialects: Kiswahili Sanifu, Nairobi Sheng, DRC Kingwana, Uganda Trade,
+  Agriculture (Kilimo Bora), and M-Pesa Fraud Detection.
+- Standard instruction tuning formats: Alpaca (instruction, input, output) and ChatML (messages).
+- Cohere Aya Swahili and Masakhane dataset ingestion & normalization.
+- Deduplication, quality filtering (length & Swahili heuristic verification), and train/val splitting.
 """
 
+import os
+import re
 import json
-from typing import List, Dict, Any
+import hashlib
+import random
+import argparse
+from typing import List, Dict, Any, Tuple, Optional, Set
 
 
-def format_alpaca_sample(instruction: str, output: str, input_text: str = "") -> Dict[str, str]:
-    return {
-        "instruction": instruction,
-        "input": input_text,
-        "output": output
+# Common high-frequency Swahili function words, pronouns, and morphemes for heuristic validation
+SWAHILI_HEURISTIC_WORDS = {
+    # Pronouns & basic function words
+    "ya", "wa", "za", "cha", "vya", "kwa", "na", "ni", "si", "katika", "kwenye", "kama",
+    "hii", "huyu", "hawa", "hili", "haya", "hiki", "hivyo", "pale", "kule", "hapa",
+    "mimi", "wewe", "yeye", "sisi", "nyinyi", "wao", "yake", "yako", "yangu", "yao",
+    "kitu", "mtu", "watu", "jambo", "habari", "sana", "ndiyo", "hapana", "lakini",
+    "kwa sababu", "ili", "baada", "kabla", "wakati", "mno", "hata", "wala", "tena",
+    # Verbs / Verbal affixes & stems
+    "kuwa", "kusema", "kufanya", "kuona", "kwenda", "kuja", "kupata", "kujua", "kutoa",
+    "alikuwa", "walikuwa", "itakuwa", "nina", "una", "ana", "tuna", "mna", "wana",
+    "alisema", "walisema", "anasema", "wamesema", "nita", "uta", "ata", "tuta",
+    # Cultural & domain anchors
+    "pesa", "shilingi", "fedha", "kodi", "bili", "simu", "ujumbe", "akaunti", "namba",
+    "shamba", "mkulima", "kilimo", "mazao", "mahindi", "mbolea", "wadudu", "mvua",
+    "methali", "lugha", "maneno", "maana", "tafsiri", "mji", "nchi", "serikali",
+    # Sheng & Kingwana anchors
+    "sheng", "msee", "wasee", "chapaa", "ganji", "luku", "mbogi", "rada", "manze", "buda",
+    "ndeko", "kingwana", "biloko", "kutosha", "kukula", "mupishi", "bule", "juu ya", "mpaka"
+}
+
+
+def format_alpaca_sample(
+    instruction: str,
+    output: str,
+    input_text: str = "",
+    metadata: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """Formats an instruction pair into standard Alpaca format."""
+    sample = {
+        "instruction": instruction.strip(),
+        "input": input_text.strip(),
+        "output": output.strip()
     }
+    if metadata:
+        sample["metadata"] = metadata
+    return sample
 
 
-def generate_seed_training_data() -> List[Dict[str, str]]:
-    """Generates seed dataset for initial LoRA continued pretraining / SFT."""
-    samples = [
-        format_alpaca_sample(
-            instruction="Eleza maana ya methali: 'Akiba haiozi'.",
-            output="Methali 'Akiba haiozi' inamaanisha kuwa kitu chochote kinachowekwa akiba kwa ajili ya siku za baadaye hakipotei wala hakiharibiki bali kitamsaidia muhusika wakati wa shida."
-        ),
-        format_alpaca_sample(
-            instruction="Nini tofauti ya Kiswahili Sanifu na Sheng ya Nairobi?",
-            output="Kiswahili Sanifu ni lugha rasmi na sanifu inayofuata sarufi iliyoidhinishwa (inayozungumzwa shuleni, mahakamani na serikalini), ilhali Sheng ni lugha ya msimu (slang) ya vijana nchini Kenya inayochanganya Kiswahili, Kiingereza, na lugha za kiasili kama Kikuyu na Dholuo."
-        ),
-        format_alpaca_sample(
-            instruction="Mteja amekwama kulipa bili ya LUKU kupitia simu. Mwelekeze hatua.",
-            output="Mteja anapaswa: 1. Kupiga menyu ya mtandao wake (k.m. *150*00#), 2. Kuchagua 'Lipa Bili', 3. Kuchagua LUKU, 4. Kuingiza namba ya mita na kiasi, 5. Kuingiza nenosiri na kusubiri SMS yenye tarakimu za umeme (token)."
-        ),
-        format_alpaca_sample(
-            instruction="Tafsiri kwa Sheng ya kisasa: 'Huyu mtu ana pesa nyingi sana'.",
-            output="Kwa Sheng ya kisasa unaweza kusema: 'Huyu msee ako na ganji mob sana' au 'Huyu msee amepiga luku na anavuta chapaa kibao'."
-        )
+def format_chatml_sample(
+    instruction: str,
+    output: str,
+    input_text: str = "",
+    system_prompt: str = "Wewe ni LughaLLM, msaidizi mwenye akili bandia anayebobea katika lugha ya Kiswahili na lahaja za Afrika Mashariki.",
+    metadata: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """Formats an instruction pair into standard ChatML conversation format."""
+    user_content = instruction.strip()
+    if input_text.strip():
+        user_content = f"{user_content}\n\nMuktadha / Taarifa:\n{input_text.strip()}"
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_content},
+        {"role": "assistant", "content": output.strip()}
     ]
+    sample: Dict[str, Any] = {"messages": messages}
+    if metadata:
+        sample["metadata"] = metadata
+    return sample
+
+
+def alpaca_to_chatml(sample: Dict[str, Any], system_prompt: Optional[str] = None) -> Dict[str, Any]:
+    """Converts an Alpaca formatted dictionary to ChatML format."""
+    sys_prompt = system_prompt or "Wewe ni LughaLLM, msaidizi hodari anayefahamu Kiswahili na lahaja za Afrika Mashariki."
+    instruction = sample.get("instruction", "")
+    input_text = sample.get("input", "")
+    output = sample.get("output", "")
+    meta = sample.get("metadata", {})
+    return format_chatml_sample(instruction, output, input_text, system_prompt=sys_prompt, metadata=meta)
+
+
+def chatml_to_alpaca(sample: Dict[str, Any]) -> Dict[str, Any]:
+    """Converts a ChatML formatted dictionary to Alpaca format."""
+    messages = sample.get("messages", [])
+    system_text = ""
+    user_text = ""
+    assistant_text = ""
+
+    for msg in messages:
+        role = msg.get("role", "")
+        content = msg.get("content", "")
+        if role == "system":
+            system_text = content
+        elif role == "user":
+            user_text = content
+        elif role == "assistant":
+            assistant_text = content
+
+    # Check if context was appended with Muktadha
+    if "\nMuktadha / Taarifa:\n" in user_text:
+        inst, inp = user_text.split("\nMuktadha / Taarifa:\n", 1)
+    else:
+        inst = user_text
+        inp = ""
+
+    meta = sample.get("metadata", {}).copy()
+    if system_text:
+        meta["system_prompt"] = system_text
+
+    return format_alpaca_sample(instruction=inst, output=assistant_text, input_text=inp, metadata=meta if meta else None)
+
+
+def normalize_sample(sample: Dict[str, Any], target_format: str = "alpaca") -> Dict[str, Any]:
+    """Normalizes any supported sample structure into the target format ('alpaca' or 'chatml')."""
+    if target_format == "alpaca":
+        if "messages" in sample:
+            return chatml_to_alpaca(sample)
+        # Check standard alpaca fields
+        inst = sample.get("instruction") or sample.get("prompt") or sample.get("inputs") or ""
+        out = sample.get("output") or sample.get("completion") or sample.get("targets") or sample.get("response") or ""
+        inp = sample.get("input") or sample.get("context") or ""
+        meta = sample.get("metadata")
+        return format_alpaca_sample(instruction=inst, output=out, input_text=inp, metadata=meta)
+    elif target_format == "chatml":
+        if "messages" in sample:
+            return sample
+        return alpaca_to_chatml(sample)
+    else:
+        raise ValueError(f"Unknown target format: {target_format}. Expected 'alpaca' or 'chatml'.")
+
+
+def verify_swahili_language(text: str, min_word_hits: int = 1) -> bool:
+    """
+    Heuristic verification that a given text contains Swahili, Sheng, or Kingwana linguistic patterns.
+    Checks for high-frequency grammatical morphemes, stop words, or East African domain terms.
+    """
+    if not text or not text.strip():
+        return False
+    # Clean words
+    words = re.findall(r"\b[a-zA-Z'\-]+\b", text.lower())
+    if not words:
+        return False
+
+    matches = sum(1 for w in words if w in SWAHILI_HEURISTIC_WORDS)
+    if matches >= min_word_hits:
+        return True
+
+    # Check for characteristic Swahili prefix patterns (e.g., wa-, vi-, ki-, ku-, m-, ma-)
+    swahili_prefixes = ("kwa", "mwa", "wa", "ku", "ali", "wali", "ina", "hawa", "kile", "vile")
+    prefix_matches = sum(1 for w in words if len(w) > 4 and any(w.startswith(p) for p in swahili_prefixes))
+    return prefix_matches >= 2
+
+
+def filter_sample(
+    sample: Dict[str, Any],
+    min_chars: int = 10,
+    max_chars: int = 8192,
+    verify_language: bool = True
+) -> bool:
+    """
+    Validates a training sample for length and linguistic validity.
+    """
+    # Extract text content
+    if "messages" in sample:
+        full_text = " ".join(m.get("content", "") for m in sample["messages"])
+        output_text = " ".join(m.get("content", "") for m in sample["messages"] if m.get("role") == "assistant")
+    else:
+        inst = sample.get("instruction", "")
+        inp = sample.get("input", "")
+        out = sample.get("output", "")
+        full_text = f"{inst} {inp} {out}"
+        output_text = out
+
+    if len(full_text.strip()) < min_chars or len(full_text) > max_chars:
+        return False
+    if len(output_text.strip()) < 5:
+        return False
+
+    if verify_language and not verify_swahili_language(full_text):
+        return False
+
+    return True
+
+
+def deduplicate_samples(samples: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Deduplicates samples based on MD5 hash of their normalized instruction/content."""
+    seen_hashes: Set[str] = set()
+    deduped: List[Dict[str, Any]] = []
+
+    for s in samples:
+        if "messages" in s:
+            user_msg = next((m.get("content", "") for m in s["messages"] if m.get("role") == "user"), "")
+            key = user_msg.strip().lower()
+        else:
+            key = (s.get("instruction", "") + " " + s.get("input", "")).strip().lower()
+
+        sample_hash = hashlib.md5(key.encode("utf-8")).hexdigest()
+        if sample_hash not in seen_hashes:
+            seen_hashes.add(sample_hash)
+            deduped.append(s)
+
+    return deduped
+
+
+def split_dataset(
+    samples: List[Dict[str, Any]],
+    val_ratio: float = 0.1,
+    seed: int = 42
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Deterministically splits samples into train and validation sets."""
+    if not samples:
+        return [], []
+    if not (0.0 <= val_ratio < 1.0):
+        raise ValueError(f"val_ratio must be between 0.0 and 1.0, got {val_ratio}")
+
+    shuffled = list(samples)
+    rng = random.Random(seed)
+    rng.shuffle(shuffled)
+
+    val_count = max(1 if val_ratio > 0 else 0, int(len(shuffled) * val_ratio))
+    val_set = shuffled[:val_count]
+    train_set = shuffled[val_count:]
+    return train_set, val_set
+
+
+def load_aya_dataset_subset(source_file: Optional[str] = None) -> List[Dict[str, Any]]:
+    """
+    Parses Cohere Aya Swahili subset records.
+    Can read from a local file or generate adapter examples if the file does not exist.
+    """
+    samples: List[Dict[str, Any]] = []
+    if source_file and os.path.exists(source_file):
+        with open(source_file, "r", encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                item = json.loads(line)
+                inst = item.get("inputs") or item.get("prompt") or item.get("instruction") or ""
+                out = item.get("targets") or item.get("completion") or item.get("output") or ""
+                if inst and out:
+                    samples.append(format_alpaca_sample(
+                        instruction=inst,
+                        output=out,
+                        metadata={"source": "cohere_aya_swahili"}
+                    ))
     return samples
 
 
-def save_dataset_jsonl(samples: List[Dict[str, str]], output_path: str):
+def load_masakhane_subset(source_file: Optional[str] = None) -> List[Dict[str, Any]]:
+    """
+    Parses Masakhane dataset records (AfriSenti / MasakhaNER / MT).
+    Normalizes them into instruction-following pairs.
+    """
+    samples: List[Dict[str, Any]] = []
+    if source_file and os.path.exists(source_file):
+        with open(source_file, "r", encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                item = json.loads(line)
+                inst = item.get("instruction") or item.get("text") or ""
+                out = item.get("output") or item.get("label") or ""
+                if inst and out:
+                    samples.append(format_alpaca_sample(
+                        instruction=inst,
+                        output=out,
+                        metadata={"source": "masakhane_swahili"}
+                    ))
+    return samples
+
+
+def generate_seed_training_data() -> List[Dict[str, Any]]:
+    """
+    Generates an expanded, curated seed dataset of 60+ high-quality diverse Swahili instruction pairs
+    spanning all primary target domains and dialects:
+    - Kiswahili Sanifu (Standard Swahili: grammar, proverbs, official, culture)
+    - Nairobi Sheng (Kenyan urban slang, youth code-switching)
+    - DRC Kingwana (Congo Swahili dialect: commerce, daily life, Katanga/Kivu)
+    - Uganda Trade Swahili (Cross-border EAC commerce, transport, currencies)
+    - Agriculture / Kilimo Bora (Fall armyworm, fertilizers, post-harvest, cassava, livestock)
+    - M-Pesa Fraud Detection & Mobile Money Security (Reversals, fake agents, PIN protection)
+    """
+    data: List[Dict[str, Any]] = [
+        # =========================================================================
+        # 1. KISWAHILI SANIFU (Standard Swahili: 11 pairs)
+        # =========================================================================
+        format_alpaca_sample(
+            instruction="Eleza maana ya methali: 'Akiba haiozi'.",
+            output="Methali 'Akiba haiozi' inamaanisha kuwa kitu chochote kinachowekwa akiba kwa ajili ya siku za baadaye hakipotei wala hakiharibiki, bali kitamsaidia muhusika wakati wa shida au uhitaji.",
+            metadata={"domain": "methali", "dialect": "kiswahili_sanifu"}
+        ),
+        format_alpaca_sample(
+            instruction="Eleza maana na muktadha wa matumizi ya methali: 'Mvumilivu hula mbivu'.",
+            output="Methali 'Mvumilivu hula mbivu' inafundisha kuwa mtu mwenye subira na uvumilivu katika jambo lolote analolifanya hatimaye hupata matunda mazuri na yenye kuridhisha. Hutumika kumtia moyo mtu anayepitia changamoto kazini au maishani.",
+            metadata={"domain": "methali", "dialect": "kiswahili_sanifu"}
+        ),
+        format_alpaca_sample(
+            instruction="Fafanua upatano wa kisarufi katika sentensi ifuatayo na uonyeshe ngeli yake: 'Wanafunzi wazuri wamesoma vitabu vizuri.'",
+            output="Katika sentensi hii kuna ngeli mbili:\n1. 'Wanafunzi wazuri wamesoma': Ngeli ya A-WA (umoja: Mwanafunzi mzuri amesoma, wingi: Wanafunzi wazuri wamesoma). Kiambishi ngeli cha nafsi ya tatu wingi ni 'wa-'.\n2. 'vitabu vizuri': Ngeli ya KI-VI (umoja: kitabu kizuri, wingi: vitabu vizuri). Kiambishi ngeli cha nomino za wingi ni 'vi-'.",
+            metadata={"domain": "sarufi", "dialect": "kiswahili_sanifu"}
+        ),
+        format_alpaca_sample(
+            instruction="Andika barua rasmi fupi ya kuomba nafasi ya mafunzo kwa vitendo (internship) kwa Mkurugenzi wa Kampuni jijini Dar es Salaam.",
+            output="Kumb. Na: MAF/2026/01\nTarehe: 15 Machi 2026\n\nKwa Mkurugenzi Mkuu,\nKampuni ya Teknolojia ya Afrika,\nS.L.P 40221, Dar es Salaam.\n\nKichwa: YAH: MAOMBI YA NAFASI YA MAFUNZO KWA VITENDO\n\nTafadhali husika na kichwa cha habari hapo juu. Mimi ni mwanafunzi wa mwaka wa pili katika Chuo Kikuu cha Dar es Salaam nikisomea Sayansi ya Kompyuta. Ninaandika barua hii kuomba nafasi ya mafunzo kwa vitendo kuanzia Julai hadi Septemba 2026.\n\nNina ujuzi thabiti katika lugha za Python na usimamizi wa data, na nina shauku ya kujifunza zaidi chini ya mwongozo wa timu yenu ya wahandisi.\n\nNatumai maombi yangu yatakubaliwa.\n\nWako mwaminifu,\nJuma Bakari.",
+            metadata={"domain": "uandishi_rasmi", "dialect": "kiswahili_sanifu"}
+        ),
+        format_alpaca_sample(
+            instruction="Nini tofauti ya msingi kati ya Ushairi wa Arudhi na Ushairi Huru katika Fasihi ya Kiswahili?",
+            output="Tofauti kuu ni: Ushairi wa Arudhi hufuata kanuni za jadi za utunzi zikiwemo urari wa vina, mizani sawa katika kila mshororo, na idadi maalum ya beti. Ushairi Huru (au mashairi ya kimapinduzi) haufungwi na kanuni hizo kali bali unazingatia mtiririko huru wa mawazo, maudhui, na mdundo wa maneno.",
+            metadata={"domain": "fasihi", "dialect": "kiswahili_sanifu"}
+        ),
+        format_alpaca_sample(
+            instruction="Eleza historia ya asili ya lugha ya Kiswahili katika Pwani ya Afrika Mashariki.",
+            output="Kiswahili ni lugha ya Kibantu iliyoanzia katika ukanda wa pwani ya Afrika Mashariki (kutoka pwani ya Somalia hadi Msumbiji na visiwa vya Zanzibar, Pemba, Lamu na Comoro). Kutokana na biashara ya baharini ya Karne nyingi, Kiswahili kiliingiza msamiati kutoka lugha za Kiarabu, Kiajemi, Kireno na baadaye Kiingereza, bila kupoteza mfumo wake wa asili wa sarufi ya Kibantu.",
+            metadata={"domain": "historia", "dialect": "kiswahili_sanifu"}
+        ),
+        format_alpaca_sample(
+            instruction="Eleza maana ya methali: 'Kikulacho ki nguoni mwako'.",
+            output="Methali hii inamaanisha kuwa madhara, usaliti, au uharibifu mkubwa unaompata mtu mara nyingi hutokana na mtu wa karibu sana (rafiki, ndugu, au mshirika wa siri) anayejua siri na udhaifu wake.",
+            metadata={"domain": "methali", "dialect": "kiswahili_sanifu"}
+        ),
+        format_alpaca_sample(
+            instruction="Mlima Kilimanjaro una umuhimu gani wa kiikolojia na kiuchumi kwa ukanda wa Afrika Mashariki?",
+            output="Mlima Kilimanjaro ni mlima mrefu zaidi barani Afrika (mita 5,895). Kiikolojia, ni mnara wa maji (water tower) unaolisha mito inayotegemewa na mamilioni ya watu na wanyamapori nchini Tanzania na Kenya, na una kanda tofauti za mimea kutoka misitu ya mvua hadi theluji ya kileleni. Kiuchumi, ni kitovu kikuu cha utalii kinachoingizia eneo hilo mamilioni ya dola za kigeni na ajira kwa maelfu ya waongoza watalii na wabeba mizigo.",
+            metadata={"domain": "jiografia", "dialect": "kiswahili_sanifu"}
+        ),
+        format_alpaca_sample(
+            instruction="Fafanua methali: 'Mtaka cha mvunguni sharti ainame'.",
+            output="Methali hii inafundisha kuwa ili mtu apate kitu cha thamani au kufikia mafanikio maishani, ni lazima ajitoe mhanga, afanye kazi kwa bidii, na awe tayari kupitia changamoto na usumbufu.",
+            metadata={"domain": "methali", "dialect": "kiswahili_sanifu"}
+        ),
+        format_alpaca_sample(
+            instruction="Mteja anataka kulipa ankara ya umeme (k.m. LUKU nchini Tanzania). Mwelekeze hatua kwa Kiswahili fasaha.",
+            output="Hatua za kununua umeme wa LUKU:\n1. Fungua menyu ya malipo ya simu yako (k.m. *150*00# kwa mtandao husika).\n2. Chagua 'Lipa Bili' kisha chagua 'Umeme / LUKU'.\n3. Ingiza namba ya mita yako yenye tarakimu 11.\n4. Ingiza kiasi cha fedha unachotaka kulipia (k.m. TZS 10,000).\n5. Weka namba yako ya siri (PIN) ya huduma ya simu ili kuthibitisha.\n6. Utapokea SMS yenye tarakimu 20 (token) za kuingiza kwenye mita yako ya umeme nyumbani.",
+            metadata={"domain": "huduma_za_kifedha", "dialect": "kiswahili_sanifu"}
+        ),
+        format_alpaca_sample(
+            instruction="Tofautisha maneno yafuatayo ya Kiswahili: 'Kuhama', 'Kuhamia', na 'Kuhimiza'.",
+            output="1. Kuhama: Kuondoka mahali ulipokuwa unaishi au kufanya kazi na kwenda pengine.\n2. Kuhamia: Kuingia na kuanza kuishi katika makazi mapya.\n3. Kuhimiza: Kumsisitiza au kumtia moyo mtu afanye jambo fulani haraka au kwa bidii.",
+            metadata={"domain": "sarufi", "dialect": "kiswahili_sanifu"}
+        ),
+
+        # =========================================================================
+        # 2. NAIROBI SHENG (Kenyan Urban Code-Switching: 11 pairs)
+        # =========================================================================
+        format_alpaca_sample(
+            instruction="Tafsiri sentensi hii ya Sheng kwa Kiswahili Sanifu: 'Huyu msee amenibamba sana na luku yake ya leo.'",
+            output="Sentensi hii kwa Kiswahili Sanifu inamaanisha: 'Mtu huyu amenivutia sana kwa mavazi yake nadhifu na ya kupendeza ya leo.'",
+            metadata={"domain": "tafsiri_sheng", "dialect": "nairobi_sheng"}
+        ),
+        format_alpaca_sample(
+            instruction="Eleza maana ya maneno haya ya kawaida ya Sheng ya Nairobi: 'Mbogi', 'Ganji', 'Ndula', na 'Rada'.",
+            output="1. Mbogi: Kundi la marafiki wa karibu, kikosi, au washirika wa mtaani.\n2. Ganji (au Chapaa): Pesa au fedha taslimu.\n3. Ndula: Viatu (haswa viatu vya raba kama sneakers au boots).\n4. Rada: Hali ya kuwa macho, kufahamu kinachoendelea, au taarifa za usalama mtaani (k.m. 'shika rada').",
+            metadata={"domain": "kamusi_sheng", "dialect": "nairobi_sheng"}
+        ),
+        format_alpaca_sample(
+            instruction="Badilisha mazungumzo haya kuwa Sheng ya kisasa ya vijana wa Nairobi: 'Habari rafiki yangu! Leo unaenda wapi? Twende tukanywe chai.'",
+            output="Kwa Sheng ya kisasa unaweza kusema: 'Niaje morio wangu! Leo unapiga step wapi? Twende tubugie chai bana.'",
+            metadata={"domain": "sheng_conversation", "dialect": "nairobi_sheng"}
+        ),
+        format_alpaca_sample(
+            instruction="Mpe kijana wa Nairobi ushauri wa kuweka akiba na kuepuka kutumia pesa zote kwa anasa, ukitumia lugha ya Sheng inayoeleweka kirahisi.",
+            output="Oya msee, cheki maneno: Usitandike ganji yote kwa sherehe za weekend ukiacha mfuko wako ukiwa empty. Ukipata chapaa kwa hustle yako, tengeneza kakitu kando kwa ajili ya siku za mvua au uwekeze kwa biashara ingine. Rada safi ni kujipanga kabla mwezi ukuchome!",
+            metadata={"domain": "ushauri_wa_vijana", "dialect": "nairobi_sheng"}
+        ),
+        format_alpaca_sample(
+            instruction="Makanga (kondakta wa matatu) Nairobi anamaanisha nini anaposema: 'Ngong, mbao mbele! Stage ya mwisho ingia na chapaa mkononi'?",
+            output="Anamaanisha: Matatu inaenda mji wa Ngong, nauli ni shilingi 20 (mbao = KES 20) kwa wanaoshukia mbele ya safari. Abiria wanaoelekea kituo cha mwisho wanatakiwa wawe wameandaa pesa zao mkononi mapema ili kulipa haraka kabla ya kushuka.",
+            metadata={"domain": "uchukuzi_matatu", "dialect": "nairobi_sheng"}
+        ),
+        format_alpaca_sample(
+            instruction="Vijana wawili wakikosana mtaani Eastlands Nairobi, wanawezaje kusuluhisha tofauti zao bila kutumia vurugu? Jibu kwa mtindo wa kuelimisha unaoheshimu utamaduni wa mtaa.",
+            output="Ili kusuluhisha mzozo mtaani bila fujo:\n1. Washushe hasira kwanza badala ya kurushiana ngumi.\n2. Wakae 'base' pamoja na washirika wanaoheshimika (kama wazee wa mtaa au mabuda) kupiga stori ya kile kilichotokea.\n3. Kila msee asikilizwe bila kukatizwa.\n4. Mwenye kosa akubali kutoa 'pole' au kurekebisha uharibifu uliotokea.\n5. Washikane mkono ili mbogi iendelee kuwa na amani na heshima.",
+            metadata={"domain": "amani_mtaani", "dialect": "nairobi_sheng"}
+        ),
+        format_alpaca_sample(
+            instruction="Tafsiri sentensi ifuatayo kwa Kiswahili Sanifu: 'Manze niko na njaa mbaya, hebu tushike mayai pasua hapo kwa butchery.'",
+            output="Kwa Kiswahili Sanifu inamaanisha: 'Kwa hakika nina njaa kali sana, tafadhali twende tukanunue na kula mayai ya kuchemsha yaliyokatwa na kuwekwa kachumbari hapo buchani.'",
+            metadata={"domain": "tafsiri_sheng", "dialect": "nairobi_sheng"}
+        ),
+        format_alpaca_sample(
+            instruction="Muziki wa Gengetone ulichangia vipi ukuaji wa msamiati wa Sheng nchini Kenya?",
+            output="Muziki wa Gengetone ulioibuka Nairobi (kupitia makundi kama Ethic, Ochungulo, na Sailors) ulitunga na kusambaza misimu mipya ya haraka kwa vijana kote nchini. Maneno kama 'rieng', 'wamlambez', 'kudunda', na 'kushika luku' yaliingizwa kwenye mazungumzo ya kila siku na hata kwenye matangazo ya kibiashara.",
+            metadata={"domain": "utamaduni_muziki", "dialect": "nairobi_sheng"}
+        ),
+        format_alpaca_sample(
+            instruction="Neno 'kushika corner' lina maana gani katika Sheng ya Nairobi?",
+            output="'Kushika corner' lina maana mbili kulingana na muktadha: 1. Kutoroka au kuondoka ghafla bila kuaga, haswa wakati wa hatari au kuepuka majukumu; 2. Kubadilisha mwelekeo wa shughuli au kuchukua njia ya mkato.",
+            metadata={"domain": "misimu", "dialect": "nairobi_sheng"}
+        ),
+        format_alpaca_sample(
+            instruction="Eleza maana ya maneno haya ya kiteknolojia katika mazungumzo ya Sheng: 'Kupiga bundle', 'Ku-dm', na 'Kuchuja picha'.",
+            output="1. Kupiga bundle: Kununua vifurushi vya data ya intaneti kwenye simu ya mkononi.\n2. Ku-dm: Kumtumia mtu ujumbe wa faragha moja kwa moja kwenye mitandao ya kijamii (Direct Message).\n3. Kuchuja picha: Kufuta picha zisizohitajika kwenye simu au kuziwekea 'filter' ili zionekane zenye kuvutia mtandaoni.",
+            metadata={"domain": "teknolojia_sheng", "dialect": "nairobi_sheng"}
+        ),
+        format_alpaca_sample(
+            instruction="Tafsiri kwa Sheng ya Nairobi: 'Mwalimu ameingia darasani, nyamazeni haraka na mfungue vitabu.'",
+            output="Kwa Sheng unaweza kusema: 'Msee wa chuo ameingia daro, pigeni silence chapchap na mfungue madesk manze!'",
+            metadata={"domain": "sheng_conversation", "dialect": "nairobi_sheng"}
+        ),
+
+        # =========================================================================
+        # 3. DRC KINGWANA (Congo Swahili: 10 pairs)
+        # =========================================================================
+        format_alpaca_sample(
+            instruction="Watu mjini Lubumbashi na Goma husalimiana vipi kwa lahaja ya Kingwana (Kiswahili cha Kongo)?",
+            output="Kwa Kingwana, salamu za kawaida ni:\n- 'Jambo sana ndeko!' (Hujambo sana ndugu!)\n- 'Habari ya leo?' au 'Habari ya kazi?'\nMajibu ya kawaida huwa: 'Mzuri sana' au 'Tuko salama'. Vilevile hutumia 'Mutoto ya kwetu' au 'Chef' kama neno la heshima na ukaribu.",
+            metadata={"domain": "maamkizi", "dialect": "drc_kingwana"}
+        ),
+        format_alpaca_sample(
+            instruction="Eleza maana ya maneno haya ya Kingwana na uonyeshe tofauti yake na Kiswahili Sanifu: 'Biloko', 'Kutosha', 'Kukula', na 'Mupishi'.",
+            output="1. Biloko: Vitu au mizigo (kutoka neno la Kilingala 'biloko'). Katika Kiswahili Sanifu ni 'vitu'.\n2. Kutosha: Kutoa au kuondoa kitu mahali (k.m. 'tosha hapa'). Katika Kiswahili Sanifu ni 'kutoa'.\n3. Kukula: Kula chakula (uongezaji wa kiambishi 'ku-' hata wakati wa kukanusha au kunyambua). Kiswahili Sanifu ni 'kula'.\n4. Mupishi: Mpishi (uongezaji wa sauti 'u' baada ya 'm'). Kiswahili Sanifu ni 'mpishi'.",
+            metadata={"domain": "msamiati", "dialect": "drc_kingwana"}
+        ),
+        format_alpaca_sample(
+            instruction="Mfanyabiashara sokoni mjini Goma anapoulizia bei ya samaki wa Ziwa Kivu, ataongea vipi kwa Kingwana?",
+            output="Ataongea hivi: 'Jambo ndeko, bei gani hii samaki ya Kivu leo? Teremsha kidogo bei tupatane bana, niko mteja wako wa siku zote!'",
+            metadata={"domain": "biashara_sokoni", "dialect": "drc_kingwana"}
+        ),
+        format_alpaca_sample(
+            instruction="Eleza umuhimu wa mshikamano na amani kwa jamii za jimbo la Kivu Kaskazini na Kusini kwa lugha ya Kingwana yenye busara.",
+            output="Bandeko yangu ya Kivu, amani njo nguzo ya maisha yetu. Bila amani watoto hawataenda masomo, wakulima hawatapanda mashamba, na biashara itasimama bule. Tuache maneno ya ukabila, tushikane mikono kama wandugu wa tumbo moja ili tujenge inchi yetu ya Kongo kwa furaha na usalama.",
+            metadata={"domain": "amani_na_jamii", "dialect": "drc_kingwana"}
+        ),
+        format_alpaca_sample(
+            instruction="Elekeza msafiri kutoka uwanja wa ndege wa Goma hadi katikati ya mji (centre-ville) kwa mtindo wa Kingwana.",
+            output="Ukitoka ku aeroport ya Goma, kamata taxi-moto ao gari ya mji. Mwambie dereva akubebe moja kwa moja kupitia Boulevard Kanyamuhanga. Utafika ku rond-point ya Birere, teremuka pale ao endelea mpaka ku centre-ville karibu na Banque Centrale. Safari haina mbali, dakika kumi na tano tu uko pale.",
+            metadata={"domain": "uongofu_njia", "dialect": "drc_kingwana"}
+        ),
+        format_alpaca_sample(
+            instruction="Mwelekeze mama nyumbani kwa Kingwana hatua za kuzuia ugonjwa wa kipindupindu (choléra) kwa usafi wa maji na chakula.",
+            output="Mama yangu, kuzuia ugonjwa wa kolera ku nyumba ni lazima:\n1. Chemsha maji ya kunywa vizuri ao tia dawa ya Aquatabs kabla ya kuitumia.\n2. Nawa mikono na sabuni kila mara baada ya kutoka ku choo na kabla ya kutayarisha chakula.\n3. Osha mboga na matunda safi na maji yaliyochemshwa.\n4. Kula chakula kikiwa moto, usikule biloko vilivyolala bule bila kufunikwa.",
+            metadata={"domain": "afya_ya_jamii", "dialect": "drc_kingwana"}
+        ),
+        format_alpaca_sample(
+            instruction="Uchimbaji mdogo wa madini (creusage artisanal) huko Katanga na Kolwezi unakabiliwa na changamoto gani kuu?",
+            output="Changamoto kuu ni: 1. Hatari za usalama wa mashimo kuporomoka kwa ukosefu wa vifaa vya kisasa; 2. Bei zisizo imara zinazotolewa na wanunuzi wa kati; 3. Ukosefu wa huduma za afya na kinga dhidi ya vumbi lenye madini ya kobalti na shaba; 4. Uhitaji wa kurasimisha wachimbaji wadogo kwenye vyama vya ushirika ili wanufaike kihalali.",
+            metadata={"domain": "uchumi_madini", "dialect": "drc_kingwana"}
+        ),
+        format_alpaca_sample(
+            instruction="Tafsiri sentensi hii ya mchanganyiko wa Kifaransa na Kingwana kwa Kiswahili Sanifu: 'Niko naenda ku bureau kutafuta dossier yangu ya kazi.'",
+            output="Kwa Kiswahili Sanifu inamaanisha: 'Ninaenda ofisini kutafuta jalada au nyaraka zangu za maombi ya kazi.'",
+            metadata={"domain": "tafsiri_kingwana", "dialect": "drc_kingwana"}
+        ),
+        format_alpaca_sample(
+            instruction="Eleza maana ya usemi huu wa Kongo: 'Motto wa nyoka ni nyoka tu.'",
+            output="Usemi huu unamaanisha kuwa mtoto au kizazi hufuata tabia, asili, na mwenendo wa wazazi wake. Mara nyingi hutumika kuonyesha kwamba hulka ya mtu haibadiliki kwa urahisi kutoka kwenye ukoo wake.",
+            metadata={"domain": "nahau_congo", "dialect": "drc_kingwana"}
+        ),
+        format_alpaca_sample(
+            instruction="Mkulima wa mihogo mjini Beni analalamika kwamba majani ya mihogo yana rangi ya njano na kukauka. Mshauri kwa Kingwana cha kilimo.",
+            output="Ndeko mkulima, hiyo ni alama ya ugonjwa wa mosaique (ugonjwa wa batobato wa muhogo). Dawa yake ni kung'oa mara moja ile mimea yote iliyoathirika na kuichoma moto ili ugonjwa usiendelee. Msimu ujao, tumia vipando safi (boutures saines) vilivyothibitishwa visivyo na magonjwa, na pambana na inzi weupe wanaosambaza ule ugonjwa.",
+            metadata={"domain": "kilimo_congo", "dialect": "drc_kingwana"}
+        ),
+
+        # =========================================================================
+        # 4. UGANDA TRADE SWAHILI (Cross-Border EAC Commerce: 10 pairs)
+        # =========================================================================
+        format_alpaca_sample(
+            instruction="Eleza taratibu za kuvusha gunia 100 za mahindi kutoka Uganda kupitia mpaka wa Busia/Malaba kuelekea Kenya.",
+            output="Taratibu za forodha na biashara mpakani:\n1. Mfanyabiashara anapaswa kuwa na Hati ya Asili ya Bidhaa (Certificate of Origin) kutoka Uganda chini ya Itifaki ya EAC ili asilipe ushuru wa forodha (0% tariff).\n2. Cheti cha ukaguzi wa ubora wa afya ya mimea (Phytosanitary Certificate) na ukaguzi wa sumukuvu (Aflatoxin testing).\n3. Kujaza fomu ya kielektroniki ya Forodha ya Pamoja ya EAC (Single Customs Territory - SCT).\n4. Ukaguzi wa uzito kwenye mizani ya mpakani na kibali cha usalama.",
+            metadata={"domain": "biashara_mpakani", "dialect": "uganda_trade"}
+        ),
+        format_alpaca_sample(
+            instruction="Mfanyabiashara wa Kampala anayetaka kubadilisha Shilingi ya Uganda (UGX) kuwa Shilingi ya Kenya (KES) sokoni Kikuubo anazingatia nini?",
+            output="Anazingatia: 1. Kiwango cha sasa cha ubadilishaji fedha (exchange rate); 2. Tofauti kati ya bei ya kununua na kuuza (spread) ya benki au maduka ya fedha (forex bureaus); 3. Ada za muamala ikiwa anatumia huduma za simu kama MTN MoMo au Airtel Money kuvuka mpaka; 4. Kuepuka kubadilishia fedha mitaani kwa watu wasio na leseni ili asipewe fedha bandia.",
+            metadata={"domain": "fedha_za_kigeni", "dialect": "uganda_trade"}
+        ),
+        format_alpaca_sample(
+            instruction="Mazungumzo ya kununua ndizi za matoke kwa wingi kutoka Mbarara na kuzisafirisha hadi Nairobi: Andika mazungumzo ya kibiashara.",
+            output="Mnunuzi: 'Habari bwana dereva, nina mikungu 200 ya matoke Mbarara inatakiwa kufika sokoni Marikiti Nairobi kesho jioni. Bei gani kwa lori?'\nDereva: 'Jambo ndugu, gharama ni Shilingi 800,000 za Uganda. Hiyo inajumuisha mafuta, malipo ya dereva na ushuru wa barabara mpakani Busia.'\nMnunuzi: 'Fanya 700,000 UGX kisha nikulipe nusu sasa hivi na nusu nyingine mara mzigo ukifika na kukaguliwa Nairobi.'\nDereva: 'Haina shida, leteni mzigo tupakie mapema asubuhi.'",
+            metadata={"domain": "biashara_usafirishaji", "dialect": "uganda_trade"}
+        ),
+        format_alpaca_sample(
+            instruction="Je, Mfanyabiashara mdogo wa Uganda anafaidika vipi na Itifaki ya Soko la Pamoja la Jumuiya ya Afrika Mashariki (EAC Common Market)?",
+            output="Anafaidika kupitia: 1. Uhuru wa kusafirisha bidhaa zilizozalishwa ndani ya EAC bila kutozwa ushuru wa forodha; 2. Matumizi ya kitambulisho cha Taifa au hati ya dharura ya kusafiria mipakani badala ya pasipoti ya gharama kubwa; 3. Utaratibu uliorahisishwa wa forodha kwa wafanyabiashara wadogo wenye bidhaa chini ya thamani ya USD 2,000 (Simplified Trade Regime - STR).",
+            metadata={"domain": "sheria_eac", "dialect": "uganda_trade"}
+        ),
+        format_alpaca_sample(
+            instruction="Mamlaka ya Mapato ya Uganda (URA) inatoa mwongozo gani kuhusu ukaguzi wa bidhaa za kielektroniki zinazoingia nchini?",
+            output="URA inahitaji: 1. Bidhaa zote zithibitishwe na Shirika la Viwango la Uganda (UNBS) kuwa na alama ya ubora (PVoC Certificate); 2. Malipo ya kodi ya ongezeko la thamani (VAT 18%) na kodi ya zuio (Withholding Tax 6%) kwa wafanyabiashara wasio na namba ya TIN inayotambulika; 3. Nyaraka sahihi za ankara ya manunuzi (Commercial Invoice) na orodha ya bidhaa (Packing List).",
+            metadata={"domain": "kodi_ura", "dialect": "uganda_trade"}
+        ),
+        format_alpaca_sample(
+            instruction="Wafanyabiashara wa soko la Nakasero jijini Kampala wanapouza matunda kwa wateja wanaotoka Kenya, wanawasiliana vipi kwa lugha ya Kiswahili cha biashara?",
+            output="Hutumia Kiswahili cha biashara chenye maneno mafupi na wazi: 'Oli otya ndugu! Karibu sana hapa matunda fresh: mananasi matamu ya Masaka, parachichi kubwa, na passion. Unachukua katoni ngapi tukupunguzie bei?'",
+            metadata={"domain": "lugha_ya_biashara", "dialect": "uganda_trade"}
+        ),
+        format_alpaca_sample(
+            instruction="Kuna umuhimu gani wa kuwa na namba ya utambulisho wa mlipakodi (TIN) nchini Uganda wakati wa kufanya biashara na nchi jirani?",
+            output="TIN inaruhusu mfanyabiashara: 1. Kusajili na kutoa mizigo forodhani bila kucheleweshwa; 2. Kudai marejesho ya kodi ya pembejeo (VAT input credit); 3. Kufungua akaunti ya benki ya kibiashara; 4. Kufanya biashara halali na taasisi za serikali na kampuni kubwa katika nchi zote za EAC.",
+            metadata={"domain": "kodi_ura", "dialect": "uganda_trade"}
+        ),
+        format_alpaca_sample(
+            instruction="Jinsi gani mfanyabiashara anaweza kutumia huduma za simu kulipia mizigo mipakani bila kubeba pesa taslimu mfukoni?",
+            output="Anaweza kutumia huduma za muungano wa pesa za simu kuvuka mpaka (Cross-Border Mobile Money kama vile Airtel Money au Safaricom M-Pesa na MTN MoMo). Hii humkinga mfanyabiashara dhidi ya unyang'anyi njiani, inampa risiti ya kidijitali ya papo hapo, na kurahisisha hesabu za biashara.",
+            metadata={"domain": "fedha_za_kidijitali", "dialect": "uganda_trade"}
+        ),
+        format_alpaca_sample(
+            instruction="Dereva wa bodaboda jijini Jinja akitakiwa kupeleka vifurushi hadi kituo cha treni ya mizigo, mteja atampa maelekezo gani kwa Kiswahili?",
+            output="Mteja atamwambia: 'Habari dereva! Nina vifurushi vitatu vya kahawa hapa. Beba kwa umakini upeleke moja kwa moja kituo cha reli ya mizigo Jinja. Wasiliana na bwana Musa pale depot. Hii hapa elfu kumi yako ya usafiri.'",
+            metadata={"domain": "uchukuzi_bodaboda", "dialect": "uganda_trade"}
+        ),
+        format_alpaca_sample(
+            instruction="Eleza maana ya neno 'Kikuubo' katika muktadha wa uchumi na biashara ya jiji la Kampala.",
+            output="'Kikuubo' ni kitovu kikuu cha biashara ya jumla (wholesale trade hub) katikati ya jiji la Kampala nchini Uganda. Bidhaa zote za vyakula, vifaa vya ujenzi, nguo na bidhaa za viwandani huuzwa hapa kwa wingi na kusambazwa maeneo mbalimbali ya Uganda, Sudan Kusini na Mashariki mwa DRC.",
+            metadata={"domain": "uchumi_uganda", "dialect": "uganda_trade"}
+        ),
+
+        # =========================================================================
+        # 5. AGRICULTURE / KILIMO BORA (Agtech & Farming Expertise: 10 pairs)
+        # =========================================================================
+        format_alpaca_sample(
+            instruction="Mkulima wa mahindi ameona majani ya miche yana matundu na kinyesi kama cha msumeno kwenye kichwa cha mmea. Ni ugonjwa gani na audhibiti vipi?",
+            output="Hiyo ni dalili ya wazi ya 'Funza wa Mahindi' (Fall Armyworm - Spodoptera frugiperda).\nNjia za kudhibiti:\n1. Njia ya kiasili: Weka mchanga safi uliopanguliwa au majivu kiasi kidogo kwenye koni/kichwa cha mmea mara miche inapoanza kukua.\n2. Mzunguko wa mazao: Usipande mahindi mfululizo kwenye shamba lilelile; badilisha na mazao ya mikunde (maharage, dengu).\n3. Dawa za kibiolojia au viuatilifu vilivyoidhinishwa (k.m. Emamectin benzoate) vinavyopulizwa asubuhi na mapema au jioni funza wanapokuwa wanafanya kazi.",
+            metadata={"domain": "kilimo_udhibiti_wadudu", "dialect": "kiswahili_sanifu"}
+        ),
+        format_alpaca_sample(
+            instruction="Eleza dalili za ugonjwa wa Mnyauko wa Bakteria kwenye Ndizi (Banana Bacterial Wilt - BXW) na jinsi ya kuzuia usisambae shambani.",
+            output="Dalili za BXW:\n- Majani yanageuka manjano na kukauka kana kwamba yameteketea kwa moto.\n- Ndizi zenyewe huiva kabla ya wakati na zikikatwa katikati zina rangi ya kahawia au usaha mweusi.\n- Ua la kiume (kengere) hukauka na kutoa majimaji ya kunata.\n\nKuzuia kusambaa:\n1. Kata na choma moto shina lolote lililoathirika mara moja.\n2. Ondoa maua ya kiume (de-budding) kwa kutumia fimbo yenye ncha uma bila kutumia kisu ili kuzuia inzi kusambaza bakteria.\n3. Osha na utakase zana za shamba (mapanga, majembe) kwa moto au dawa ya klorini kabla ya kuhamia kwenye mgomba mwingine.",
+            metadata={"domain": "magonjwa_ya_mimea", "dialect": "kiswahili_sanifu"}
+        ),
+        format_alpaca_sample(
+            instruction="Nini tofauti ya matumizi kati ya mbolea ya kupandia (DAP) na mbolea ya kukuzia (CAN au UREA) katika kilimo cha nafaka?",
+            output="1. Mbolea ya Kupandia (k.m. DAP): Ina kiwango kikubwa cha Fosforasi (Phosphorus). Huwekwa ardhini wakati wa kupanda mbegu ili kuimarisha ukuaji wa mizizi ya kwanza na uotaji mzuri.\n2. Mbolea ya Kukuzia (k.m. CAN au UREA): Ina kiwango kikubwa cha Nitrojeni (Nitrogen). Huwekwa mmea unapofikia urefu wa magoti (wiki 3 hadi 4 baada ya kuota) ili kuchochea majani kuwa ya kijani kibichi na kuongeza kasi ya ukuaji wa shina.",
+            metadata={"domain": "mbolea_na_udongo", "dialect": "kiswahili_sanifu"}
+        ),
+        format_alpaca_sample(
+            instruction="Mkulima mwenye eneo la nusu ekari anataka kuanza umwagiliaji wa matone (drip irrigation) kwa nyanya. Ni faida gani atapata?",
+            output="Faida kuu za umwagiliaji wa matone ni:\n1. Kuokoa maji hadi 60% ikilinganishwa na umwagiliaji wa mifereji au kuanika maji juu.\n2. Maji na virutubisho hufika moja kwa moja kwenye mizizi ya mmea bila kulowesha majani, hivyo kupunguza magonjwa ya ukungu (fungal blights).\n3. Hupunguza ukuaji wa magugu shambani kwa sababu ardhi ya katikati inabaki kavu.\n4. Mkulima anaweza kuvuna hata wakati wa kiangazi wakati bei ya nyanya ikiwa ya juu sokoni.",
+            metadata={"domain": "umwagiliaji", "dialect": "kiswahili_sanifu"}
+        ),
+        format_alpaca_sample(
+            instruction="Mwelekeze mfugaji mdogo wa kuku wa kienyeji ratiba ya chanjo muhimu anazopaswa kutoa ndani ya wiki nne za kwanza.",
+            output="Ratiba ya chanjo ya vifaranga:\n- Siku ya 1 hadi 7: Chanjo ya Mdondo / Kideri (Newcastle Disease - I2 au Lasota) kupitia njia ya jicho au maji ya kunywa.\n- Siku ya 10 hadi 14: Chanjo ya Gumboro (Infectious Bursal Disease - IBD) kupitia maji ya kunywa.\n- Siku ya 21 (Wiki ya 3): Rudia chanjo ya Newcastle (kuongeza kinga).\n- Siku ya 28 (Wiki ya 4): Rudia chanjo ya pili ya Gumboro.\nKumbuka kutoa vitamini kwenye maji siku moja kabla na baada ya kutoa chanjo.",
+            metadata={"domain": "ufugaji_kuku", "dialect": "kiswahili_sanifu"}
+        ),
+        format_alpaca_sample(
+            instruction="Mkulima anawezaje kuhifadhi mahindi na maharage bila kutumia kemikali zenye sumu baada ya mavuno?",
+            output="Njia bora na salama ni kutumia mifuko ya hewa isiyoingiza hewa (PICS Bags - Purdue Improved Crop Storage).\nHatua:\n1. Kausha nafaka vizuri juani hadi zifikie unyevu chini ya 13%.\n2. Safisha nafaka kuondoa vumbi na punje zilizovunjika.\n3. Weka nafaka kwenye mfuko wa PICS wenye tabaka tatu za plastiki maalum kisha ufunge vizuri kila tabaka.\nWadudu waliomo ndani hukosa hewa ya oksijeni na kufa ndani ya siku chache bila haja ya kutumia unga wa sumu.",
+            metadata={"domain": "uhifadhi_mazao", "dialect": "kiswahili_sanifu"}
+        ),
+        format_alpaca_sample(
+            instruction="Kwa nini ni muhimu mkulima kupima tindikali (pH) ya udongo kabla ya msimu wa kilimo kuanza?",
+            output="Kupima pH ya udongo ni muhimu kwa sababu:\n1. pH huamua iwapo mizizi ya mimea itaweza kufyonza virutubisho vilivyomo kwenye udongo (udongo ukiwa na asidi nyingi, phosphorus haipatikani kwa mimea).\n2. Husaidia kujua kiasi sahihi cha chokaa ya kilimo (agricultural lime) kinachohitajika kupunguza ukali wa tindikali.\n3. Humkinga mkulima dhidi ya kupoteza fedha kwa kununua mbolea nyingi ambazo hazitafanya kazi kutokana na udongo mbovu.",
+            metadata={"domain": "udongo_sayansi", "dialect": "kiswahili_sanifu"}
+        ),
+        format_alpaca_sample(
+            instruction="Ni mambo gani muhimu ya kuzingatia wakati wa kupanda miche ya parachichi za Hass kwa ajili ya biashara ya kuuza nje?",
+            output="Mambo ya kuzingatia:\n1. Tumia miche iliyopandikizwa (grafted seedlings) kutoka vitalu vilivyoidhinishwa na idara ya kilimo.\n2. Chimba mashimo ya ukubwa wa mita 1x1x1 na uache nafasi ya mita 5 hadi 7 kati ya mti na mti.\n3. Changanya udongo wa juu na ndoo 2 za mbolea ya samadi iliyoiva vizuri kabla ya kupanda.\n4. Weka matandazo ya majani makavu (mulching) chini ya mti ili kuhifadhi unyevu na kuzuia maji yasipotee.",
+            metadata={"domain": "kilimo_cha_biashara", "dialect": "kiswahili_sanifu"}
+        ),
+        format_alpaca_sample(
+            instruction="Eleza hatua 4 rahisi za kutengeneza mboji (compost) ya asili nyumbani kwa kutumia mabaki ya shamba.",
+            output="Hatua 4 za kutengeneza mboji:\n1. Weka tabaka la chini la nyasi kavu au vijiti vidogo ili kuruhusu hewa kupita.\n2. Weka tabaka la kijani (mabaki ya majani mbichi, mabaki ya jikoni) yanayoleta nitrojeni.\n3. Weka tabaka la kinyesi cha mifugo (ng'ombe, kuku au mbuzi) kuongeza vijidudu vinavyoozesha haraka.\n4. Nyunyizia maji kiasi kufanya unyevunyevu kama sponji, kisha geuza lundo hilo kila baada ya wiki mbili. Baada ya miezi 2-3 mboji itakuwa tayari ikiwa na rangi nyeusi na harufu ya udongo safi.",
+            metadata={"domain": "mbolea_asili", "dialect": "kiswahili_sanifu"}
+        ),
+        format_alpaca_sample(
+            instruction="Kwa nini zao la muhogo linachukuliwa kuwa nguzo kuu ya usalama wa chakula katika maeneo yenye ukame Afrika Mashariki?",
+            output="Muhogo ni zao imara kwa sababu:\n1. Mizizi yake hustahimili ukame mkali ambapo mahindi na maharage hushindwa kuendelea.\n2. Mkulima anaweza kuiacha mizizi ya muhogo ardhini kwa muda mrefu (hadi miaka miwili) kama ghala ya dharura ya chakula bila kuharibika.\n3. Majani ya muhogo (kisamvu) hutumika kama mboga yenye protini na madini chuma kwa familia.",
+            metadata={"domain": "usalama_wa_chakula", "dialect": "kiswahili_sanifu"}
+        ),
+
+        # =========================================================================
+        # 6. M-PESA FRAUD DETECTION & MOBILE FINANCIAL SECURITY (10 pairs)
+        # =========================================================================
+        format_alpaca_sample(
+            instruction="Mtumiaji anapokea ujumbe mfupi wa SMS unaosema: 'Umepokea KSh 4,500 kutoka kwa John... Tafadhali nirudishie nilikosea namba'. Nini hatua sahihi anayopaswa kuchukua?",
+            output="Hatua sahihi za kuchukua:\n1. Usitume pesa yoyote kutoka kwa salio lako mwenyewe.\n2. Angalia namba iliyotuma ujumbe huo: Iwapo umetoka kwa namba ya simu ya kawaida (k.m. 07XXXXXXXX) badala ya mtumaji rasmi wa 'MPESA', huo ni ujumbe feki uliotengenezwa na tapeli.\n3. Hata kama umepokea pesa halisi kimakosa, mwambie anayedai atume neno 'REVERSE' pamoja na namba ya muamala kwenda 456 (nchini Kenya) au apige huduma kwa wateja ili mtoa huduma ashughulikie urudishaji kisheria.\n4. Usiwahi kutoa PIN yako wala kutuma pesa kabla ya mtoa huduma kuthibitisha.",
+            metadata={"domain": "ulaghai_wa_reversal", "dialect": "mpesa_fraud_defense"}
+        ),
+        format_alpaca_sample(
+            instruction="Mtu anapiga simu akijitambulisha kuwa ni 'Afisa wa Huduma kwa Wateja wa Safaricom/Vodacom' akisema kuna tatizo kwenye akaunti yako na anahitaji tarakimu 4 za nenosiri au namba ya OTP ili asizuie laini yako. Mteja anapaswa kufanya nini?",
+            output="Mteja anapaswa:\n1. Kukata simu hiyo mara moja.\n2. Kuelewa kanuni nambari moja ya usalama: Wafanyakazi halisi wa kampuni ya mawasiliano hawawezi kamwe kukuuliza PIN yako ya siri wala nambari ya dharura ya OTP.\n3. Usiwahi kumtajia mtu yeyote namba hizo hata iweje.\n4. Ripoti namba hiyo ya simu mara moja kwa kituo cha huduma kwa wateja au kwa kutuma ujumbe wenye namba ya mhalifu kwenda namba ya dharura ya kuripoti utapeli (kama vile 333 nchini Kenya).",
+            metadata={"domain": "ulaghai_wa_simu", "dialect": "mpesa_fraud_defense"}
+        ),
+        format_alpaca_sample(
+            instruction="Ni dalili zipi zinazoonyesha kuwa mtu anafanyiwa shambulio la kubadilisha laini ya simu (SIM swap fraud), na anapaswa kufanya nini mara moja?",
+            output="Dalili za SIM Swap:\n- Simu yako inapoteza mtandao ghafla (inaonyesha 'No Service' au 'Emergency Calls Only') mahali ambapo siku zote kuna mtandao imara, na baada ya kupokea simu kutoka kwa mtu asiyejulikana akidai kuwa afisa wa mtandao.\n\nHatua za haraka:\n1. Tumia simu nyingine kupiga kituo cha huduma kwa wateja mara moja kuomba namba yako ifungwe.\n2. Wasiliana na benki yako kusimamisha miamala yote ya simu (Mobile Banking apps).\n3. Nenda katika duka rasmi la kampuni ya simu ukiwa na kitambulisho chako cha taifa ili kurejesha udhibiti wa laini yako.",
+            metadata={"domain": "sim_swap_fraud", "dialect": "mpesa_fraud_defense"}
+        ),
+        format_alpaca_sample(
+            instruction="Ujumbe unasema: 'Hongera! Kikomo chako cha Fuliza kimeongezwa hadi KSh 70,000. Bonyeza linki hii kuthibitisha: bit.ly/fuliza-limit'. Je, ujumbe huu ni salama?",
+            output="Hapana! Ujumbe huu ni utapeli wa hadaa (phishing scam).\nSababu:\n1. Kampuni rasmi haziwaambii wateja kubonyeza linki za njia ya mkato (shortened links kama bit.ly au tovuti zisizo rasmi) ili kupandisha kiwango cha mkopo.\n2. Viwango vya mikopo hupandishwa kiotomatiki kulingana na historia yako ya miamala bila haja ya kujaza fomu mtandaoni.\n3. Ukibonyeza linki hiyo, wezi wataiba taarifa zako za siri au kuweka programu hasidi kwenye simu yako. Futa ujumbe huo mara moja.",
+            metadata={"domain": "phishing_fraud", "dialect": "mpesa_fraud_defense"}
+        ),
+        format_alpaca_sample(
+            instruction="Mpe mtumiaji kanuni 5 za dhahabu za kulinda namba yake ya siri (PIN) ya huduma za fedha kwa simu.",
+            output="Kanuni 5 za dhahabu za kulinda PIN:\n1. Usitumie namba zinazoweza kubashiriwa kirahisi (kama mwaka wako wa kuzaliwa, 1234, 0000 au namba za kitambulisho).\n2. Usiwahi kumtajia au kumwandikia mtu mwingine PIN yako, hata awe wakala au anayedai kuwa mfanyakazi wa huduma kwa wateja.\n3. Funika kiganja chako wakati wa kubonyeza PIN unapokuwa dukani au kwa wakala.\n4. Badilisha PIN yako mara moja ukihisi kuna mtu ameiona.\n5. Weka nenosiri tofauti la kufungua kioo cha simu (screen lock) na PIN ya pochi ya fedha.",
+            metadata={"domain": "usalama_wa_pin", "dialect": "mpesa_fraud_defense"}
+        ),
+        format_alpaca_sample(
+            instruction="Ujumbe unaingia kwenye simu: 'Hongera! Umeshinda KSh 1,000,000 katika droo maalum. Piga namba hii ya msimamizi kudai zawadi yako na utume KSh 2,500 ya bima.' Tambua viashiria vya utapeli.",
+            output="Viashiria vya utapeli katika ujumbe huu:\n1. Hujawahi kushiriki mashindano yoyote lakini unaambiwa umeshinda zawadi.\n2. Unatakiwa utume 'fedha ya bima au usajili' kabla ya kupewa zawadi—shindano halisi halitozi mshindi fedha kabla ya kumpa zawadi yake.\n3. Ujumbe unalenga kukufanya uwe na pupa na papara bila kufikiri.\n4. Namba inayotakiwa ipigiwe ni ya mtu binafsi badala ya namba rasmi za kampuni zilizothibitishwa.",
+            metadata={"domain": "zawadi_hewa", "dialect": "mpesa_fraud_defense"}
+        ),
+        format_alpaca_sample(
+            instruction="Tofautisha ujumbe halisi wa muamala wa M-Pesa na ujumbe bandia uliotumwa na tapeli.",
+            output="Tofauti kuu:\n1. Mtumaji (Sender ID): Ujumbe halisi hutoka kwa jina rasmi la huduma (k.m. 'MPESA') bila namba ya simu kuonekana. Ujumbe bandia mara nyingi huonyesha namba ya kawaida ya simu ya simu (k.m. +254 7XX... au +255 7XX...).\n2. Salio jipya: Ujumbe halisi huwa na salio jipya la akaunti yako linaloendana na muamala. Ujumbe bandia hautakuwa na salio sahihi au utaacha sehemu ya salio wazi.\n3. Mfumo wa simu: Angalia salio lako mwenyewe kupitia menyu au programu rasmi ya simu (app) kabla ya kuamini SMS yoyote uliyotumiwa.",
+            metadata={"domain": "utambuzi_wa_sms", "dialect": "mpesa_fraud_defense"}
+        ),
+        format_alpaca_sample(
+            instruction="Mfanyabiashara anapokea picha ya skrini (screenshot) ya muamala wa malipo kutoka kwa mnunuzi mtandaoni. Kwa nini haipaswi kutoa mzigo kwa kutegemea screenshot pekee?",
+            output="Muuza bidhaa hapaswi kutegemea picha ya skrini kwa sababu:\n1. Kuna programu na tovuti nyingi bandia zinazoweza kutengeneza picha za risiti za M-Pesa kwa sekunde chache zenye jina na kiasi chochote.\n2. Mnunuzi anaweza kutuma muamala kisha akaomba usitishwe (reversal) mara moja kabla ya mfumo kukamilika.\n3. Muuzaji lazima ahakikishe kuwa amepokea SMS rasmi kwenye simu yake mwenyewe au kuangalia taarifa kwenye tovuti ya M-Pesa for Business kabla ya kutoa bidhaa.",
+            metadata={"domain": "biashara_usalama", "dialect": "mpesa_fraud_defense"}
+        ),
+        format_alpaca_sample(
+            instruction="Jinsi gani mtu anaweza kuelimisha wazazi au wazee kijijini dhidi ya ulaghai wa simu za mkononi?",
+            output="Njia za kuelimisha wazee kijijini:\n1. Waeleze kwa maneno rahisi kuwa mtu yeyote anayepiga simu akitaka namba za siri au akisema kuna shida ya pesa ni mwizi.\n2. Wape kanuni rahisi: 'Mtu asiyejulikana akikupigia simu kuhusu pesa au kubonyeza namba, kata simu na unipigie mimi mara moja kabla hujafanya chochote.'\n3. Wasaidie kufunga huduma zisizohitajika zinazoweza kukata salio kiholela.\n4. Wajulishe kuwa washindi wa bahati nasibu huwa hawaombwi fedha ili wapewe zawadi.",
+            metadata={"domain": "elimu_ya_usalama", "dialect": "mpesa_fraud_defense"}
+        ),
+        format_alpaca_sample(
+            instruction="Mtu akigundua ametapeliwa fedha kupitia huduma ya pesa kwa simu, ni hatua zipi za kisheria na kiufundi anazopaswa kuchukua?",
+            output="Hatua za kuchukua:\n1. Piga simu mara moja kwa kituo cha huduma kwa wateja cha mtoa huduma kutoa taarifa ya utapeli na namba ya muamala ili akaunti ya tapeli izuiwe kabla hajatoa pesa hizo.\n2. Nenda kituo cha polisi kilicho karibu kutoa ripoti rasmi ya uhalifu wa kidijitali na uchukue namba ya jalada (OB Number).\n3. Nchini Kenya, ripoti namba ya tapeli kwa kutuma SMS ya bure kwenda namba 333 ukiwa na namba ya simu ya tapeli na ujumbe alioutuma.\n4. Peana taarifa ya polisi kwa mtoa huduma ili kusaidia upelelezi wa kisheria na uwezekano wa kurejeshewa fedha.",
+            metadata={"domain": "hatua_za_kisheria", "dialect": "mpesa_fraud_defense"}
+        )
+    ]
+    return data
+
+
+def save_dataset_jsonl(samples: List[Dict[str, Any]], output_path: str):
+    """Saves a list of sample dictionaries to a UTF-8 JSON Lines file."""
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         for s in samples:
             f.write(json.dumps(s, ensure_ascii=False) + "\n")
-    print(f"Saved {len(samples)} instruction samples to {output_path}")
+
+
+def load_dataset_jsonl(input_path: str) -> List[Dict[str, Any]]:
+    """Loads samples from a JSON Lines file."""
+    samples = []
+    with open(input_path, "r", encoding="utf-8") as f:
+        for line in f:
+            if line.strip():
+                samples.append(json.loads(line.strip()))
+    return samples
+
+
+def prepare_training_splits(
+    samples: List[Dict[str, Any]],
+    output_dir: str,
+    val_ratio: float = 0.1,
+    output_format: str = "alpaca",
+    verify_language: bool = True,
+    seed: int = 42
+) -> Dict[str, Any]:
+    """
+    Executes the full preprocessing pipeline:
+    1. Normalizes samples into target format (alpaca or chatml).
+    2. Filters out low-quality/invalid entries.
+    3. Deduplicates identical samples.
+    4. Deterministically splits into train and validation sets.
+    5. Saves train.jsonl and val.jsonl in output_dir.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+
+    normalized = [normalize_sample(s, target_format=output_format) for s in samples]
+    filtered = [s for s in normalized if filter_sample(s, verify_language=verify_language)]
+    deduped = deduplicate_samples(filtered)
+    train_set, val_set = split_dataset(deduped, val_ratio=val_ratio, seed=seed)
+
+    train_path = os.path.join(output_dir, "train.jsonl")
+    val_path = os.path.join(output_dir, "val.jsonl")
+
+    save_dataset_jsonl(train_set, train_path)
+    save_dataset_jsonl(val_set, val_path)
+
+    stats = {
+        "raw_count": len(samples),
+        "filtered_count": len(filtered),
+        "deduped_count": len(deduped),
+        "train_count": len(train_set),
+        "val_count": len(val_set),
+        "format": output_format,
+        "train_path": train_path,
+        "val_path": val_path
+    }
+    return stats
+
+
+def main():
+    parser = argparse.ArgumentParser(description="LughaLLM Swahili Dataset Preparation Pipeline")
+    parser.add_argument("--seed-file", type=str, default=None, help="Path to write seed dataset")
+    parser.add_argument("--input-file", type=str, default=None, help="Input JSONL file to process")
+    parser.add_argument("--output-dir", type=str, default=None, help="Output directory for train/val splits")
+    parser.add_argument("--format", type=str, choices=["alpaca", "chatml"], default="alpaca", help="Output format")
+    parser.add_argument("--val-ratio", type=float, default=0.1, help="Validation set split ratio")
+    parser.add_argument("--generate-seed-only", action="store_true", help="Only generate seed dataset")
+    parser.add_argument("--skip-lang-check", action="store_true", help="Skip heuristic language validation")
+    args = parser.parse_args()
+
+    curr_dir = os.path.dirname(os.path.abspath(__file__))
+    seed_path = args.seed_file or os.path.join(curr_dir, "swahili_instructions_seed.jsonl")
+
+    # Always generate or refresh seed data
+    seed_data = generate_seed_training_data()
+    save_dataset_jsonl(seed_data, seed_path)
+    print(f"Generated {len(seed_data)} seed instruction samples -> {seed_path}")
+
+    if args.generate_seed_only:
+        return
+
+    # Process input or seed data into train/val splits
+    input_samples = load_dataset_jsonl(args.input_file) if args.input_file else seed_data
+    out_dir = args.output_dir or os.path.join(curr_dir, "processed")
+    stats = prepare_training_splits(
+        samples=input_samples,
+        output_dir=out_dir,
+        val_ratio=args.val_ratio,
+        output_format=args.format,
+        verify_language=not args.skip_lang_check
+    )
+
+    print(f"Dataset preparation complete:")
+    print(f"  Raw: {stats['raw_count']} | Deduped: {stats['deduped_count']}")
+    print(f"  Train: {stats['train_count']} ({stats['train_path']})")
+    print(f"  Val:   {stats['val_count']} ({stats['val_path']})")
 
 
 if __name__ == "__main__":
-    import os
-    out_dir = os.path.dirname(__file__)
-    data = generate_seed_training_data()
-    save_dataset_jsonl(data, os.path.join(out_dir, "swahili_instructions_seed.jsonl"))
+    main()
