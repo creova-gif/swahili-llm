@@ -245,6 +245,168 @@
             color: var(--text-high);
         }
 
+        .balance-badge-btn {
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid var(--emerald-border);
+            color: var(--emerald-400);
+            font-family: var(--font-mono);
+            font-size: 0.74rem;
+            padding: 0.25rem 0.65rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            transition: all var(--transition-snappy);
+            font-weight: 600;
+        }
+
+        .balance-badge-btn:hover {
+            background: rgba(16, 185, 129, 0.16);
+            border-color: var(--emerald-500);
+            color: #34d399;
+            transform: translateY(-1px);
+        }
+
+        .balance-badge-btn .badge-action-pill {
+            background: rgba(16, 185, 129, 0.22);
+            color: #a7f3d0;
+            padding: 0.1rem 0.35rem;
+            border-radius: var(--radius-xs);
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .secondary-nav-btn {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-medium);
+            font-family: var(--font-sans);
+            font-size: 0.74rem;
+            padding: 0.28rem 0.65rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: all var(--transition-snappy);
+        }
+
+        .secondary-nav-btn:hover {
+            background: var(--bg-subtle);
+            border-color: var(--border-medium);
+            color: var(--text-high);
+        }
+
+        /* Generic Modals */
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.78);
+            backdrop-filter: blur(5px);
+            z-index: 1050;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        .modal-backdrop.is-open { display: flex; }
+
+        .modal-dialog {
+            width: 100%;
+            max-width: 660px;
+            max-height: 90vh;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-medium);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+            animation: modalFadeIn 0.18s ease-out;
+        }
+
+        .modal-dialog-large {
+            max-width: 860px;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.97); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.4rem;
+            border-bottom: 1px solid var(--border-subtle);
+            background: var(--bg-elevated);
+        }
+
+        .modal-header h2 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-high);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0;
+        }
+
+        .modal-close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-low);
+            font-size: 1.15rem;
+            cursor: pointer;
+            padding: 0.2rem 0.5rem;
+            border-radius: var(--radius-xs);
+            transition: all var(--transition-snappy);
+        }
+
+        .modal-close-btn:hover {
+            color: var(--text-high);
+            background: var(--bg-subtle);
+        }
+
+        .modal-body {
+            padding: 1.4rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.1rem;
+        }
+
+        .sim-subtabs {
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .sim-tab-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-medium);
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 0.4rem 0.8rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--transition-snappy);
+        }
+
+        .sim-tab-btn.active {
+            background: var(--bg-elevated);
+            color: var(--text-high);
+            border-color: var(--border-medium);
+        }
+
         /* ==========================================================================
            3. TAB NAVIGATION BAR
            ========================================================================== */
@@ -1216,9 +1378,12 @@
             <span class="status-pill">
                 🌍 200M+ Speakers
             </span>
-            <span class="status-pill" id="balancePill" title="Simulated M-Pesa Balance">
-                KES 14,250
-            </span>
+            <button class="balance-badge-btn" onclick="openBillingModal()" title="Salio la M-Pesa & Malipo (Cmd+B)">
+                <span>💳</span> <span id="balancePillText">KES 14,250</span> <span class="badge-action-pill">+ Ongeza</span>
+            </button>
+            <button class="secondary-nav-btn" onclick="openSimulatorsModal()" title="Backend Simulators: 2G USSD & Agent Tools (Cmd+S)">
+                <span>🔬</span> Simulators
+            </button>
             <button class="cmd-palette-btn" onclick="openCommandPalette()" title="Command Palette (Cmd+K / Ctrl+K)">
                 <span>Cmd Palette</span> <kbd>⌘K</kbd>
             </button>
@@ -1235,27 +1400,12 @@
             </li>
             <li>
                 <button id="tab-btn-chat" class="nav-tab-btn" role="tab" aria-selected="false" onclick="activateTab('chat')">
-                    ⚡ Dev Studio & Reasoning <span class="tab-shortcut-badge">⌘2</span>
-                </button>
-            </li>
-            <li>
-                <button id="tab-btn-tools" class="nav-tab-btn" role="tab" aria-selected="false" onclick="activateTab('tools')">
-                    🛠️ Vyombo vya Ulinzi (Tools) <span class="tab-shortcut-badge">⌘3</span>
-                </button>
-            </li>
-            <li>
-                <button id="tab-btn-ussd" class="nav-tab-btn" role="tab" aria-selected="false" onclick="activateTab('ussd')">
-                    📟 2G USSD (*149*00#) <span class="tab-shortcut-badge">⌘4</span>
-                </button>
-            </li>
-            <li>
-                <button id="tab-btn-billing" class="nav-tab-btn" role="tab" aria-selected="false" onclick="activateTab('billing')">
-                    💳 M-Pesa & Sarafu <span class="tab-shortcut-badge">⌘5</span>
+                    ⚡ Dev Studio & Playground <span class="tab-shortcut-badge">⌘2</span>
                 </button>
             </li>
             <li>
                 <button id="tab-btn-bench" class="nav-tab-btn" role="tab" aria-selected="false" onclick="activateTab('bench')">
-                    🏆 SWAHILI-BENCH & GGUF <span class="tab-shortcut-badge">⌘6</span>
+                    🏆 SWAHILI-BENCH & GGUF <span class="tab-shortcut-badge">⌘3</span>
                 </button>
             </li>
         </ul>
@@ -1407,7 +1557,10 @@
                 <!-- Left Pane: Request Builder -->
                 <div class="pane-left" id="chatLeftPane">
                     <div class="panel-header-strip">
-                        <h2><span>⚡</span> Request Workbench</h2>
+                        <div style="display: flex; align-items: center; gap: 0.6rem;">
+                            <h2><span>⚡</span> Request Workbench</h2>
+                            <button class="secondary-nav-btn" onclick="openSimulatorsModal()" style="font-size: 0.68rem; padding: 0.15rem 0.5rem;" title="Jaribu USSD na Vyombo vya Ndani">🔬 Backend Simulators</button>
+                        </div>
                         <span class="status-pill" id="charCountPill">0 chars • ~0 tokens</span>
                     </div>
 
@@ -1532,145 +1685,7 @@
             </div>
         </section>
 
-        <!-- TAB 3: AGENTIC PROTECTIVE TOOLS -->
-        <section id="view-tools" class="tab-content-panel" role="tabpanel">
-            <div class="workspace-card-grid">
-                <div class="tool-panel">
-                    <h3><span>🛡️</span> 1. rahisisha_mkopo_kidijitali (Loan APR Protector)</h3>
-                    <p style="font-size: 0.78rem; color: var(--text-medium);">Hukokotoa riba halisi ya mwaka (APR) ya mikopo ya simu ili kuwalinda wafanyabiashara wadogo dhidi ya mitego ya madeni.</p>
-                    <div class="tool-input-row">
-                        <div><label style="font-size:0.68rem; color:var(--text-low); display:block;">Mkopo:</label><input id="loanAmt" class="tool-input" type="number" value="50000"></div>
-                        <div><label style="font-size:0.68rem; color:var(--text-low); display:block;">Rejesho:</label><input id="loanRep" class="tool-input" type="number" value="65000"></div>
-                        <div><label style="font-size:0.68rem; color:var(--text-low); display:block;">Siku:</label><input id="loanDur" class="tool-input" type="number" value="14"></div>
-                    </div>
-                    <button class="btn-martian btn-martian-primary" onclick="runLoanTool()">Chambua Hatari ya Riba</button>
-                </div>
-
-                <div class="tool-panel">
-                    <h3><span>🌱</span> 2. tiba_ya_magonjwa_ya_mimea (Crop Advisor)</h3>
-                    <p style="font-size: 0.78rem; color: var(--text-medium);">Ushauri na tiba za kiasili (majivu, mchanga) na dawa zilizoidhinishwa kwa wakulima wa vijijini.</p>
-                    <div class="tool-input-row">
-                        <div><label style="font-size:0.68rem; color:var(--text-low); display:block;">Zao:</label><input id="pestCrop" class="tool-input" type="text" value="mahindi"></div>
-                        <div><label style="font-size:0.68rem; color:var(--text-low); display:block;">Dalili/Mdudu:</label><input id="pestSym" class="tool-input" type="text" value="funza wa mahindi"></div>
-                    </div>
-                    <button class="btn-martian btn-martian-primary" onclick="runCropTool()">Pata Tiba ya Zao</button>
-                </div>
-
-                <div class="tool-panel">
-                    <h3><span>⚖️</span> 3. hesabu_kodi_kikanda (Regional VAT Engine)</h3>
-                    <p style="font-size: 0.78rem; color: var(--text-medium);">Hesabu ya ushuru kulingana na mamlaka za mapato (TRA, KRA, URA, DGI, RRA).</p>
-                    <div class="tool-input-row">
-                        <div><label style="font-size:0.68rem; color:var(--text-low); display:block;">Kiasi cha Mauzo:</label><input id="taxAmt" class="tool-input" type="number" value="150000"></div>
-                        <div>
-                            <label style="font-size:0.68rem; color:var(--text-low); display:block;">Mamlaka:</label>
-                            <select id="taxJurisdiction" class="tool-input">
-                                <option value="Tanzania">Tanzania (TRA 18%)</option>
-                                <option value="Kenya">Kenya (KRA 16%)</option>
-                                <option value="Uganda">Uganda (URA 18%)</option>
-                                <option value="DRC">DRC (DGI 16%)</option>
-                                <option value="Rwanda">Rwanda (RRA 18%)</option>
-                            </select>
-                        </div>
-                    </div>
-                    <button class="btn-martian btn-martian-primary" onclick="runTaxTool()">Hesabu Kodi ya VAT</button>
-                </div>
-
-                <div class="tool-panel" style="grid-column: 1 / -1; background: var(--bg-canvas);">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <h3 style="color: var(--amber-500);"><span>📊</span> Matokeo ya Chombo (Execution Output)</h3>
-                        <button class="btn-martian" onclick="copyToolOutput()">Copy Tool Output</button>
-                    </div>
-                    <pre id="toolOutputPre" style="background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1rem; font-family: var(--font-mono); font-size: 0.82rem; color: var(--text-high); white-space: pre-wrap;">Chagua chombo hapo juu kisha ubofye kutekeleza ili kuona matokeo.</pre>
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB 4: 2G USSD (*149*00#) -->
-        <section id="view-ussd" class="tab-content-panel" role="tabpanel">
-            <div class="ussd-wrapper">
-                <div style="max-width: 440px;">
-                    <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--emerald-500);">2G USSD Gateway (*149*00#)</h2>
-                    <p style="color: var(--text-medium); font-size: 0.85rem; line-height: 1.6; margin-bottom: 1rem;">
-                        Zaidi ya asilimia 60 ya wananchi vijijini hutumia simu za vitufe (itel, Nokia 105). LughaLLM inatoa muunganisho wa USSD bila kuhitaji intaneti.
-                    </p>
-                    <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.85rem; font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.7; margin-bottom: 1rem;">
-                        <div>• Msimbo Mkuu: <strong style="color:var(--emerald-500);">*149*00#</strong></div>
-                        <div>• Gharama: <strong>Bure (Zero Data Protocol)</strong></div>
-                        <div>• Latency: <strong>&lt; 120ms (GSM Signalling Channel)</strong></div>
-                    </div>
-                    <button class="btn-martian btn-martian-primary" onclick="resetUSSD()">Weka Upya / Piga *149*00#</button>
-                </div>
-
-                <div class="feature-phone">
-                    <div style="width: 40px; height: 3px; background: #4a5568; border-radius: 2px; margin: 0 auto 0.6rem;"></div>
-                    <div style="font-size: 0.68rem; color: #a0aec0; text-align: center; margin-bottom: 0.35rem; font-family: var(--font-mono);">
-                        📶 2G GSM • SAFARICOM / VODACOM
-                    </div>
-                    <div id="ussdScreen" class="phone-lcd">CON Karibu LughaLLM:
-1. Ushauri wa Kilimo
-2. Fedha & Mikopo
-3. Methali & Utamaduni
-4. Msaada</div>
-                    
-                    <input id="ussdBuffer" type="text" class="tool-input" placeholder="Weka nambari..." style="text-align: center; margin-bottom: 0.6rem; font-weight: 700;">
-
-                    <div class="keypad-grid">
-                        <button class="keypad-btn" onclick="pressKey('1')">1</button>
-                        <button class="keypad-btn" onclick="pressKey('2')">2</button>
-                        <button class="keypad-btn" onclick="pressKey('3')">3</button>
-                        <button class="keypad-btn" onclick="pressKey('4')">4</button>
-                        <button class="keypad-btn" onclick="pressKey('5')">5</button>
-                        <button class="keypad-btn" onclick="pressKey('6')">6</button>
-                        <button class="keypad-btn" onclick="pressKey('7')">7</button>
-                        <button class="keypad-btn" onclick="pressKey('8')">8</button>
-                        <button class="keypad-btn" onclick="pressKey('9')">9</button>
-                        <button class="keypad-btn" style="background:#059669; color:white; font-size:0.75rem;" onclick="sendUSSD()">SEND</button>
-                        <button class="keypad-btn" onclick="pressKey('0')">0</button>
-                        <button class="keypad-btn" style="background:#dc2626; color:white; font-size:0.75rem;" onclick="resetUSSD()">END</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB 5: M-PESA & SARAFU -->
-        <section id="view-billing" class="tab-content-panel" role="tabpanel">
-            <div class="workspace-card-grid">
-                <div class="tool-panel">
-                    <h3><span>📱</span> M-Pesa & Sarafu za Kikanda</h3>
-                    <p style="font-size: 0.78rem; color: var(--text-medium);">Mfumo wa malipo wa kikanda unaounganishwa moja kwa moja na Safaricom Daraja API na Vodacom M-Pesa kwa sarafu 6 za EAC.</p>
-
-                    <div>
-                        <label style="font-size: 0.72rem; color: var(--text-low); display: block; margin-bottom: 0.25rem;">Chagua Sarafu:</label>
-                        <select id="billingCurrency" class="tool-input" onchange="calcBillingTokens()">
-                            <option value="TZS">Shilingi ya Tanzania (TZS) — TZS 25 / 1k tokens</option>
-                            <option value="KES" selected>Shilingi ya Kenya (KES) — KES 1.30 / 1k tokens</option>
-                            <option value="UGX">Shilingi ya Uganda (UGX) — UGX 37.0 / 1k tokens</option>
-                            <option value="CDF">Faranga ya Kongo (CDF) — CDF 28.0 / 1k tokens</option>
-                            <option value="RWF">Faranga ya Rwanda (RWF) — RWF 13.5 / 1k tokens</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label style="font-size: 0.72rem; color: var(--text-low); display: block; margin-bottom: 0.25rem;">Kiasi cha Pesa:</label>
-                        <input id="billingAmount" class="tool-input" type="number" value="1000" oninput="calcBillingTokens()">
-                    </div>
-
-                    <div style="background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.85rem;">
-                        <span style="font-size: 0.72rem; color: var(--text-low); display: block;">Token Zatakazopokewa Papo Hapo:</span>
-                        <span id="billingTokenResult" style="font-size: 1.5rem; font-weight: 800; color: var(--emerald-500); font-family: var(--font-mono);">769,230 tokens</span>
-                    </div>
-
-                    <button class="btn-martian btn-martian-primary" onclick="pushMpesaSTK()">Tuma Ombi la M-Pesa (Daraja STK Push)</button>
-                </div>
-
-                <div class="tool-panel">
-                    <h3><span>📜</span> Stakabadhi ya Malipo (STK Receipt)</h3>
-                    <pre id="billingReceiptPre" style="background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1rem; font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-high); white-space: pre-wrap;">Weka kiasi kisha ubofye 'Tuma Ombi la M-Pesa' ili kuona stakabadhi halisi.</pre>
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB 6: SWAHILI-BENCH & GGUF -->
+        <!-- TAB 3: SWAHILI-BENCH & GGUF -->
         <section id="view-bench" class="tab-content-panel" role="tabpanel">
             <div class="workspace-card-grid">
                 <div class="tool-panel">
@@ -1721,14 +1736,187 @@
             </div>
             <ul class="cmd-results-list" id="cmdResultsList">
                 <li class="cmd-item" onclick="execCmd('tab_assistant')"><span class="cmd-left"><span>🤖</span> Open Chatbot Assistant</span><kbd>⌘1</kbd></li>
-                <li class="cmd-item" onclick="execCmd('tab_chat')"><span class="cmd-left"><span>⚡</span> Open Dev Studio Workbench</span><kbd>⌘2</kbd></li>
-                <li class="cmd-item" onclick="execCmd('tab_tools')"><span class="cmd-left"><span>🛠️</span> Open Protective Tools</span><kbd>⌘3</kbd></li>
-                <li class="cmd-item" onclick="execCmd('tab_ussd')"><span class="cmd-left"><span>📟</span> Open 2G USSD Gateway</span><kbd>⌘4</kbd></li>
-                <li class="cmd-item" onclick="execCmd('tab_billing')"><span class="cmd-left"><span>💳</span> Open M-Pesa & Billing</span><kbd>⌘5</kbd></li>
-                <li class="cmd-item" onclick="execCmd('tab_bench')"><span class="cmd-left"><span>🏆</span> Open SWAHILI-BENCH</span><kbd>⌘6</kbd></li>
+                <li class="cmd-item" onclick="execCmd('tab_chat')"><span class="cmd-left"><span>⚡</span> Open Dev Studio & Playground</span><kbd>⌘2</kbd></li>
+                <li class="cmd-item" onclick="execCmd('tab_bench')"><span class="cmd-left"><span>🏆</span> Open SWAHILI-BENCH & GGUF</span><kbd>⌘3</kbd></li>
+                <li class="cmd-item" onclick="execCmd('open_billing')"><span class="cmd-left"><span>💳</span> Ongeza Salio la M-Pesa (Billing)</span><kbd>⌘B</kbd></li>
+                <li class="cmd-item" onclick="execCmd('open_simulators')"><span class="cmd-left"><span>🔬</span> Open 2G USSD & Tool Simulators</span><kbd>⌘S</kbd></li>
                 <li class="cmd-item" onclick="execCmd('copy_curl')"><span class="cmd-left"><span>📋</span> Copy as cURL Command</span><kbd>curl</kbd></li>
                 <li class="cmd-item" onclick="execCmd('copy_python')"><span class="cmd-left"><span>🐍</span> Copy Python SDK Snippet</span><kbd>py</kbd></li>
             </ul>
+        </div>
+    </div>
+
+    <!-- 5. M-PESA & SARAFU BILLING MODAL (CMD+B) -->
+    <div class="modal-backdrop" id="billingModalBackdrop" onclick="handleModalBackdropClick(event, 'billingModalBackdrop')">
+        <div class="modal-dialog" role="dialog" aria-modal="true" aria-label="M-Pesa na Malipo">
+            <div class="modal-header">
+                <h2><span>💳</span> M-Pesa & Sarafu za Kikanda (Billing & Credits)</h2>
+                <button class="modal-close-btn" onclick="closeBillingModal()" aria-label="Funga Modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.8rem; color: var(--text-medium); line-height: 1.5; margin: 0;">
+                    Mfumo salama wa malipo unaounganishwa na <strong>Safaricom Daraja API</strong> na <strong>Vodacom M-Pesa</strong> kwa sarafu 6 za Jumuiya ya Afrika Mashariki (EAC).
+                </p>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
+                    <div>
+                        <label style="font-size: 0.72rem; color: var(--text-low); display: block; margin-bottom: 0.3rem;">Chagua Sarafu:</label>
+                        <select id="billingCurrency" class="tool-input" onchange="calcBillingTokens()">
+                            <option value="TZS">Shilingi ya Tanzania (TZS) — TZS 25 / 1k</option>
+                            <option value="KES" selected>Shilingi ya Kenya (KES) — KES 1.30 / 1k</option>
+                            <option value="UGX">Shilingi ya Uganda (UGX) — UGX 37.0 / 1k</option>
+                            <option value="CDF">Faranga ya Kongo (CDF) — CDF 28.0 / 1k</option>
+                            <option value="RWF">Faranga ya Rwanda (RWF) — RWF 13.5 / 1k</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.72rem; color: var(--text-low); display: block; margin-bottom: 0.3rem;">Kiasi cha Pesa:</label>
+                        <input id="billingAmount" class="tool-input" type="number" value="1000" min="10" oninput="calcBillingTokens()">
+                    </div>
+                </div>
+
+                <div>
+                    <label style="font-size: 0.72rem; color: var(--text-low); display: block; margin-bottom: 0.3rem;">Nambari ya Simu (M-Pesa STK Push):</label>
+                    <input id="billingPhone" class="tool-input" type="tel" value="254712345678" placeholder="Mfano: 254712345678 au 255754000000">
+                </div>
+
+                <div style="background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <span style="font-size: 0.72rem; color: var(--text-low); display: block;">Token Zatakazopokelewa:</span>
+                        <span id="billingTokenResult" style="font-size: 1.4rem; font-weight: 800; color: var(--emerald-500); font-family: var(--font-mono);">769,230 tokens</span>
+                    </div>
+                    <span class="status-pill pill-live"><span class="indicator-dot"></span> Papo Hapo</span>
+                </div>
+
+                <button class="btn-martian btn-martian-primary" onclick="pushMpesaSTK()" style="padding: 0.75rem; font-size: 0.88rem;">
+                    📱 Tuma Ombi la M-Pesa (Daraja STK Push)
+                </button>
+
+                <div>
+                    <span style="font-size: 0.72rem; color: var(--text-low); display: block; margin-bottom: 0.3rem;">Stakabadhi ya Malipo (STK Receipt):</span>
+                    <pre id="billingReceiptPre" style="background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.85rem; font-family: var(--font-mono); font-size: 0.76rem; color: var(--text-high); white-space: pre-wrap; margin: 0; min-height: 80px;">Bofya 'Tuma Ombi la M-Pesa' ili kuiga malipo na kuongeza salio la token mara moja.</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. DEVELOPER & TELCO SIMULATORS MODAL (CMD+S) -->
+    <div class="modal-backdrop" id="simulatorsModalBackdrop" onclick="handleModalBackdropClick(event, 'simulatorsModalBackdrop')">
+        <div class="modal-dialog modal-dialog-large" role="dialog" aria-modal="true" aria-label="Simulators za Backend">
+            <div class="modal-header">
+                <h2><span>🔬</span> Developer & Telco Sandbox (Backend Channel Testers)</h2>
+                <button class="modal-close-btn" onclick="closeSimulatorsModal()" aria-label="Funga Modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="sim-subtabs">
+                    <button id="sim-tab-btn-ussd" class="sim-tab-btn active" onclick="switchSimTab('ussd')">
+                        📟 2G USSD (*149*00#) Phone Simulator
+                    </button>
+                    <button id="sim-tab-btn-tools" class="sim-tab-btn" onclick="switchSimTab('tools')">
+                        🛡️ Autonomous Agent Tools (Loan APR, Crops, VAT)
+                    </button>
+                </div>
+
+                <!-- Sim Tab 1: 2G USSD Phone -->
+                <div id="sim-panel-ussd">
+                    <div class="ussd-wrapper" style="gap: 1.5rem; justify-content: center;">
+                        <div style="max-width: 320px;">
+                            <h3 style="font-size: 1rem; font-weight: 700; color: var(--emerald-500); margin-bottom: 0.4rem;">2G GSM Telco Gateway</h3>
+                            <p style="color: var(--text-medium); font-size: 0.78rem; line-height: 1.5; margin-bottom: 0.8rem;">
+                                Inajaribu usindikaji wa HTTP callbacks kutoka kwa Safaricom na Vodacom USSD Gateways kwa simu za vitufe (itel, Nokia 105).
+                            </p>
+                            <div style="background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.65rem; font-family: var(--font-mono); font-size: 0.72rem; line-height: 1.6; margin-bottom: 0.8rem;">
+                                <div>• Msimbo: <strong style="color:var(--emerald-500);">*149*00#</strong></div>
+                                <div>• Itifaki: <strong>GSM Signalling Channel</strong></div>
+                                <div>• Data: <strong>0 KB (Offline / Air-Gapped)</strong></div>
+                            </div>
+                            <button class="btn-martian btn-martian-primary" onclick="resetUSSD()" style="width: 100%;">
+                                Weka Upya / Piga *149*00#
+                            </button>
+                        </div>
+
+                        <div class="feature-phone">
+                            <div style="width: 40px; height: 3px; background: #4a5568; border-radius: 2px; margin: 0 auto 0.5rem;"></div>
+                            <div style="font-size: 0.65rem; color: #a0aec0; text-align: center; margin-bottom: 0.3rem; font-family: var(--font-mono);">
+                                📶 2G GSM • SAFARICOM / VODACOM
+                            </div>
+                            <div id="ussdScreen" class="phone-lcd" style="min-height: 85px;">CON Karibu LughaLLM:
+1. Ushauri wa Kilimo
+2. Fedha & Mikopo
+3. Methali & Utamaduni
+4. Msaada</div>
+                            
+                            <input id="ussdBuffer" type="text" class="tool-input" placeholder="Weka nambari..." style="text-align: center; margin-bottom: 0.5rem; font-weight: 700;">
+
+                            <div class="keypad-grid">
+                                <button class="keypad-btn" onclick="pressKey('1')">1</button>
+                                <button class="keypad-btn" onclick="pressKey('2')">2</button>
+                                <button class="keypad-btn" onclick="pressKey('3')">3</button>
+                                <button class="keypad-btn" onclick="pressKey('4')">4</button>
+                                <button class="keypad-btn" onclick="pressKey('5')">5</button>
+                                <button class="keypad-btn" onclick="pressKey('6')">6</button>
+                                <button class="keypad-btn" onclick="pressKey('7')">7</button>
+                                <button class="keypad-btn" onclick="pressKey('8')">8</button>
+                                <button class="keypad-btn" onclick="pressKey('9')">9</button>
+                                <button class="keypad-btn" style="background:#059669; color:white; font-size:0.75rem;" onclick="sendUSSD()">SEND</button>
+                                <button class="keypad-btn" onclick="pressKey('0')">0</button>
+                                <button class="keypad-btn" style="background:#dc2626; color:white; font-size:0.75rem;" onclick="resetUSSD()">END</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sim Tab 2: Agentic Protective Tools -->
+                <div id="sim-panel-tools" style="display: none;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.85rem; margin-bottom: 1rem;">
+                        <div class="tool-panel" style="padding: 0.9rem;">
+                            <h3 style="font-size: 0.85rem;"><span>🛡️</span> Loan APR Protector</h3>
+                            <p style="font-size: 0.72rem; color: var(--text-medium); margin-bottom: 0.5rem;">Hukokotoa riba ya mikopo ya simu kuwalinda wafanyabiashara wadogo.</p>
+                            <div class="tool-input-row">
+                                <div><label style="font-size:0.65rem; color:var(--text-low); display:block;">Mkopo:</label><input id="loanAmt" class="tool-input" type="number" value="50000"></div>
+                                <div><label style="font-size:0.65rem; color:var(--text-low); display:block;">Rejesho:</label><input id="loanRep" class="tool-input" type="number" value="65000"></div>
+                                <div><label style="font-size:0.65rem; color:var(--text-low); display:block;">Siku:</label><input id="loanDur" class="tool-input" type="number" value="14"></div>
+                            </div>
+                            <button class="btn-martian btn-martian-primary" onclick="runLoanTool()" style="margin-top: 0.5rem; width: 100%;">Hesabu APR</button>
+                        </div>
+
+                        <div class="tool-panel" style="padding: 0.9rem;">
+                            <h3 style="font-size: 0.85rem;"><span>🌱</span> Crop Disease Advisor</h3>
+                            <p style="font-size: 0.72rem; color: var(--text-medium); margin-bottom: 0.5rem;">Ushauri wa tiba za asili na dawa kwa wakulima wa vijijini.</p>
+                            <div class="tool-input-row">
+                                <div><label style="font-size:0.65rem; color:var(--text-low); display:block;">Zao:</label><input id="pestCrop" class="tool-input" type="text" value="mahindi"></div>
+                                <div><label style="font-size:0.65rem; color:var(--text-low); display:block;">Dalili:</label><input id="pestSym" class="tool-input" type="text" value="funza wa mahindi"></div>
+                            </div>
+                            <button class="btn-martian btn-martian-primary" onclick="runCropTool()" style="margin-top: 0.5rem; width: 100%;">Pata Tiba</button>
+                        </div>
+
+                        <div class="tool-panel" style="padding: 0.9rem;">
+                            <h3 style="font-size: 0.85rem;"><span>⚖️</span> Regional VAT Engine</h3>
+                            <p style="font-size: 0.72rem; color: var(--text-medium); margin-bottom: 0.5rem;">Hesabu ya VAT kwa mamlaka za TRA, KRA, URA, DGI, RRA.</p>
+                            <div class="tool-input-row">
+                                <div><label style="font-size:0.65rem; color:var(--text-low); display:block;">Mauzo:</label><input id="taxAmt" class="tool-input" type="number" value="150000"></div>
+                                <div>
+                                    <label style="font-size:0.65rem; color:var(--text-low); display:block;">Mamlaka:</label>
+                                    <select id="taxJurisdiction" class="tool-input">
+                                        <option value="Tanzania">Tanzania (TRA 18%)</option>
+                                        <option value="Kenya">Kenya (KRA 16%)</option>
+                                        <option value="Uganda">Uganda (URA 18%)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button class="btn-martian btn-martian-primary" onclick="runTaxTool()" style="margin-top: 0.5rem; width: 100%;">Hesabu VAT</button>
+                        </div>
+                    </div>
+
+                    <div class="tool-panel" style="background: var(--bg-canvas);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                            <h3 style="color: var(--amber-500); font-size: 0.85rem; margin: 0;"><span>📊</span> Matokeo ya Chombo (Output):</h3>
+                            <button class="btn-martian" onclick="copyToolOutput()">Copy</button>
+                        </div>
+                        <pre id="toolOutputPre" style="background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.75rem; font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-high); white-space: pre-wrap; margin: 0;">Tekeleza chombo hapo juu ili kuona matokeo.</pre>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -2260,7 +2448,40 @@
             }
         }
 
-        // Billing
+        // Billing & Credits Modal Controller
+        let currentBalanceKES = 14250;
+
+        function openBillingModal() {
+            document.getElementById('billingModalBackdrop').classList.add('is-open');
+            calcBillingTokens();
+        }
+
+        function closeBillingModal() {
+            document.getElementById('billingModalBackdrop').classList.remove('is-open');
+        }
+
+        // Simulators Modal Controller (2G USSD & Agent Tools)
+        function openSimulatorsModal() {
+            document.getElementById('simulatorsModalBackdrop').classList.add('is-open');
+        }
+
+        function closeSimulatorsModal() {
+            document.getElementById('simulatorsModalBackdrop').classList.remove('is-open');
+        }
+
+        function switchSimTab(tab) {
+            document.getElementById('sim-tab-btn-ussd').classList.toggle('active', tab === 'ussd');
+            document.getElementById('sim-tab-btn-tools').classList.toggle('active', tab === 'tools');
+            document.getElementById('sim-panel-ussd').style.display = tab === 'ussd' ? 'block' : 'none';
+            document.getElementById('sim-panel-tools').style.display = tab === 'tools' ? 'block' : 'none';
+        }
+
+        function handleModalBackdropClick(e, backdropId) {
+            if (e.target.id === backdropId) {
+                document.getElementById(backdropId).classList.remove('is-open');
+            }
+        }
+
         function calcBillingTokens() {
             const cur = document.getElementById('billingCurrency').value;
             const amt = parseFloat(document.getElementById('billingAmount').value) || 0;
@@ -2268,9 +2489,34 @@
             const tokens = Math.floor((amt / (rates[cur] || 1.30)) * 1000);
             document.getElementById('billingTokenResult').textContent = tokens.toLocaleString() + " tokens";
         }
+
         function pushMpesaSTK() {
-            document.getElementById('billingReceiptPre').innerHTML = `STAKABADHI: M-PESA DARAJA STK PUSH\nKumbukumbu: ws_CO_${Date.now()}\nHali: IMETHIBITISHWA\nToken Zilizoongezwa: ${document.getElementById('billingTokenResult').textContent}`;
-            showToast('M-Pesa STK Push Imethibitishwa');
+            const cur = document.getElementById('billingCurrency').value;
+            const amt = parseFloat(document.getElementById('billingAmount').value) || 0;
+            const tokensStr = document.getElementById('billingTokenResult').textContent;
+            const phone = document.getElementById('billingPhone').value || '254712345678';
+            const txId = 'LUG' + Math.random().toString(36).substring(2, 9).toUpperCase();
+
+            // Simulate wallet credit
+            if (cur === 'KES') {
+                currentBalanceKES += amt;
+            } else {
+                currentBalanceKES += Math.max(50, Math.round(amt / 18));
+            }
+            document.getElementById('balancePillText').textContent = `KES ${currentBalanceKES.toLocaleString()}`;
+
+            document.getElementById('billingReceiptPre').innerHTML = `STAKABADHI YA MALIPO (M-PESA DARAJA STK PUSH)
+────────────────────────────────────────────────────
+Msimbo wa Malipo : ${txId}
+Nambari ya Simu  : ${phone}
+Kiasi Kilicholipwa: ${cur} ${amt.toLocaleString()}
+Salio Jipya      : KES ${currentBalanceKES.toLocaleString()}
+Token Zilizopokelewa: ${tokensStr}
+Hali ya Muamala  : IMETHIBITISHWA (Confirmed 200 OK)
+Muda             : ${new Date().toLocaleTimeString()}
+Mtandao          : Safaricom / Vodacom M-Pesa API
+────────────────────────────────────────────────────`;
+            showToast(`M-Pesa STK Push: +${tokensStr} zimeongezwa!`);
         }
 
         // Command Palette
@@ -2292,19 +2538,29 @@
         }
         function execCmd(act) {
             closeCommandPalette();
-            if (act.startsWith('tab_')) activateTab(act.replace('tab_', ''));
+            if (act === 'tab_assistant') activateTab('assistant');
+            else if (act === 'tab_chat') activateTab('chat');
+            else if (act === 'tab_bench') activateTab('bench');
+            else if (act === 'open_billing') openBillingModal();
+            else if (act === 'open_simulators') openSimulatorsModal();
             else if (act === 'copy_curl') copyAsCurl();
             else if (act === 'copy_python') copyAsPython();
         }
 
-        // Global Shortcuts
+        // Global Keyboard Shortcuts
         window.addEventListener('keydown', (e) => {
             const isMeta = e.metaKey || e.ctrlKey;
-            if (isMeta && e.key === 'k') { e.preventDefault(); openCommandPalette(); }
-            if (e.key === 'Escape') closeCommandPalette();
-            if (isMeta && e.key >= '1' && e.key <= '6') {
+            if (isMeta && e.key.toLowerCase() === 'k') { e.preventDefault(); openCommandPalette(); }
+            if (isMeta && e.key.toLowerCase() === 'b') { e.preventDefault(); openBillingModal(); }
+            if (isMeta && e.key.toLowerCase() === 's') { e.preventDefault(); openSimulatorsModal(); }
+            if (e.key === 'Escape') {
+                closeCommandPalette();
+                closeBillingModal();
+                closeSimulatorsModal();
+            }
+            if (isMeta && e.key >= '1' && e.key <= '3') {
                 e.preventDefault();
-                const tabs = ['assistant', 'chat', 'tools', 'ussd', 'billing', 'bench'];
+                const tabs = ['assistant', 'chat', 'bench'];
                 activateTab(tabs[parseInt(e.key) - 1]);
             }
         });
