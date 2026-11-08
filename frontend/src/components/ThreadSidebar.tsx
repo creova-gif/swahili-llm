@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
 import {
-  MessageSquare,
   Plus,
   Trash2,
   Edit2,
   Check,
   X,
   Search,
-  ShieldCheck,
-  Server,
+  MessageSquare,
+  Folder,
+  BookOpen,
+  Code2,
+  Compass,
+  Sparkles,
+  Settings,
+  PanelLeftClose,
   Zap,
 } from 'lucide-react';
 import { ConversationThread } from '../types';
@@ -22,6 +27,8 @@ interface ThreadSidebarProps {
   onDeleteThread: (threadId: string) => void;
   isOpen: boolean;
   onCloseMobile?: () => void;
+  onOpenBilling?: () => void;
+  onOpenCommandPalette?: () => void;
 }
 
 export const ThreadSidebar: React.FC<ThreadSidebarProps> = ({
@@ -33,14 +40,13 @@ export const ThreadSidebar: React.FC<ThreadSidebarProps> = ({
   onDeleteThread,
   isOpen,
   onCloseMobile,
+  onOpenBilling,
+  onOpenCommandPalette,
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
   const [editingThreadId, setEditingThreadId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
 
-  const filteredThreads = threads.filter((t) =>
-    (t.title || 'Mazungumzo').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredThreads = threads;
 
   const startEditing = (t: ConversationThread, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -70,179 +76,248 @@ export const ThreadSidebar: React.FC<ThreadSidebarProps> = ({
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-30 flex flex-col w-72 bg-[#0a0f1d] border-r border-canvas-border transition-transform duration-200 ease-in-out md:static md:translate-x-0 ${
+      className={`fixed inset-y-0 left-0 z-30 flex flex-col w-[260px] bg-[#17181d] border-r border-white/5 transition-transform duration-200 ease-in-out md:static md:translate-x-0 ${
         isOpen ? 'translate-x-0' : '-translate-x-full'
       }`}
     >
-      {/* Top Header / Brand */}
-      <div className="flex items-center justify-between p-4 border-b border-canvas-border">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-            <Zap className="h-4 w-4 fill-emerald-400" />
+      {/* Top Header: Brand Logo & Collapse Toggle */}
+      <div className="flex items-center justify-between px-4 pt-4 pb-2">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 text-white font-bold">
+            <Zap className="h-4 w-4 fill-white text-white" />
           </div>
-          <div>
-            <h1 className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
-              <span>LughaLLM</span>
-              <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                PRO
-              </span>
-            </h1>
-            <p className="text-[11px] text-slate-400 font-mono">Pan-African AI Model</p>
-          </div>
+          <span className="font-semibold text-sm tracking-tight text-white">LughaLLM</span>
         </div>
 
-        {onCloseMobile && (
-          <button
-            onClick={onCloseMobile}
-            className="md:hidden p-1 text-slate-400 hover:text-slate-200"
-            type="button"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        )}
-      </div>
-
-      {/* "+ Mazungumzo Mapya" (New Chat) Button */}
-      <div className="p-3">
         <button
-          onClick={onNewChat}
+          onClick={onCloseMobile}
           type="button"
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 px-3.5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-emerald-950/50 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.98] transition-all"
+          className="text-zinc-400 hover:text-white p-1 rounded-md hover:bg-white/5 transition-colors"
+          title="Funga menyu"
         >
-          <Plus className="h-4 w-4" />
-          <span>+ Mazungumzo Mapya</span>
+          <PanelLeftClose className="h-4 w-4" />
         </button>
       </div>
 
-      {/* Search Bar */}
-      <div className="px-3 pb-2">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-500" />
-          <input
-            type="text"
-            placeholder="Tafuta mazungumzo..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-md bg-canvas-input py-1.5 pl-8 pr-3 text-xs text-slate-200 placeholder-slate-500 border border-canvas-border focus:border-emerald-500/50 focus:outline-none"
-          />
-        </div>
+      {/* "+ New chat" Button */}
+      <div className="px-3 py-2">
+        <button
+          onClick={onNewChat}
+          type="button"
+          className="flex w-full items-center gap-2.5 rounded-lg bg-[#22242c] px-3.5 py-2 text-xs font-medium text-zinc-200 border border-white/5 hover:bg-[#282a34] hover:text-white transition-all shadow-sm"
+        >
+          <Plus className="h-3.5 w-3.5 text-zinc-400" />
+          <span>New chat</span>
+        </button>
       </div>
 
-      {/* Thread List */}
-      <div className="flex-1 overflow-y-auto px-2 py-1 space-y-1">
-        <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-          Historia ya Mazungumzo ({filteredThreads.length})
+      {/* Core Navigation Items */}
+      <div className="px-2 py-1 space-y-0.5">
+        <button
+          onClick={onOpenCommandPalette}
+          type="button"
+          className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-zinc-400 hover:bg-white/5 hover:text-zinc-200 transition-colors"
+        >
+          <div className="flex items-center gap-2.5">
+            <Search className="h-3.5 w-3.5 text-zinc-500" />
+            <span>Search</span>
+          </div>
+          <kbd className="font-mono text-[10px] text-zinc-600 bg-white/5 px-1 rounded">⌘K</kbd>
+        </button>
+
+        <button
+          type="button"
+          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 bg-white/5 font-medium transition-colors"
+        >
+          <MessageSquare className="h-3.5 w-3.5 text-emerald-400" />
+          <span>Chats</span>
+        </button>
+
+        <button
+          type="button"
+          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs text-zinc-400 hover:bg-white/5 hover:text-zinc-200 transition-colors"
+        >
+          <Folder className="h-3.5 w-3.5 text-zinc-500" />
+          <span>Projects</span>
+        </button>
+
+        <button
+          type="button"
+          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs text-zinc-400 hover:bg-white/5 hover:text-zinc-200 transition-colors"
+        >
+          <BookOpen className="h-3.5 w-3.5 text-zinc-500" />
+          <span>Library</span>
+        </button>
+
+        <button
+          type="button"
+          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs text-zinc-400 hover:bg-white/5 hover:text-zinc-200 transition-colors"
+        >
+          <Code2 className="h-3.5 w-3.5 text-zinc-500" />
+          <span>Code</span>
+        </button>
+      </div>
+
+      {/* Middle Scrollable Section: GPTs, Projects & Recents */}
+      <div className="flex-1 overflow-y-auto px-2 py-2 space-y-4 text-xs">
+        {/* GPTs Category */}
+        <div>
+          <div className="px-2.5 pb-1 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+            GPTs
+          </div>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-zinc-400 hover:bg-white/5 hover:text-zinc-200 transition-colors"
+          >
+            <Compass className="h-3.5 w-3.5 text-zinc-500" />
+            <span>Explore GPTs</span>
+          </button>
         </div>
 
-        {filteredThreads.length === 0 ? (
-          <div className="px-3 py-8 text-center text-xs text-slate-500">
-            Hakuna mazungumzo yaliyopatikana. Bonyeza kitufe cha juu kuanza jipya!
+        {/* Projects Category */}
+        <div>
+          <div className="px-2.5 pb-1 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+            Projects
           </div>
-        ) : (
-          filteredThreads.map((thread) => {
-            const isActive = thread.thread_id === activeThreadId;
-            const isEditing = thread.thread_id === editingThreadId;
+          <div className="space-y-0.5">
+            <button
+              type="button"
+              className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-zinc-400 hover:bg-white/5 hover:text-zinc-200 transition-colors"
+            >
+              <Folder className="h-3.5 w-3.5 text-zinc-500" />
+              <span>Content Plan</span>
+            </button>
+            <button
+              type="button"
+              className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-zinc-400 hover:bg-white/5 hover:text-zinc-200 transition-colors"
+            >
+              <Folder className="h-3.5 w-3.5 text-zinc-500" />
+              <span>Wellness Plan</span>
+            </button>
+          </div>
+        </div>
 
-            return (
-              <div
-                key={thread.thread_id}
-                onClick={() => {
-                  if (!isEditing) {
-                    onSelectThread(thread.thread_id);
-                    onCloseMobile?.();
-                  }
-                }}
-                className={`group relative flex items-center justify-between rounded-lg px-2.5 py-2 text-xs cursor-pointer transition-all ${
-                  isActive
-                    ? 'bg-emerald-500/15 text-emerald-200 border border-emerald-500/30'
-                    : 'text-slate-300 hover:bg-canvas-elevated hover:text-white border border-transparent'
-                }`}
-              >
-                <div className="flex items-center gap-2 min-w-0 flex-1 mr-1">
-                  <MessageSquare
-                    className={`h-3.5 w-3.5 flex-shrink-0 ${
-                      isActive ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-400'
+        {/* Recents Category */}
+        <div>
+          <div className="px-2.5 pb-1 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+            Recents
+          </div>
+
+          {filteredThreads.length === 0 ? (
+            <div className="px-2.5 py-3 text-zinc-500 text-[11px]">
+              No recent chats.
+            </div>
+          ) : (
+            <div className="space-y-0.5">
+              {filteredThreads.map((thread) => {
+                const isActive = thread.thread_id === activeThreadId;
+                const isEditing = thread.thread_id === editingThreadId;
+
+                return (
+                  <div
+                    key={thread.thread_id}
+                    onClick={() => {
+                      if (!isEditing) {
+                        onSelectThread(thread.thread_id);
+                        onCloseMobile?.();
+                      }
+                    }}
+                    className={`group relative flex items-center justify-between rounded-lg px-2.5 py-1.5 cursor-pointer transition-all ${
+                      isActive
+                        ? 'bg-[#22242c] text-white font-medium'
+                        : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
                     }`}
-                  />
+                  >
+                    <span className="truncate pr-2">{thread.title || 'New Chat'}</span>
 
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-full rounded bg-canvas-input px-1.5 py-0.5 text-xs text-white border border-emerald-500 focus:outline-none"
-                      autoFocus
-                    />
-                  ) : (
-                    <span className="truncate font-medium">{thread.title || 'Mazungumzo Mapya'}</span>
-                  )}
-                </div>
-
-                {/* Actions: Edit & Delete */}
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {isEditing ? (
-                    <>
-                      <button
-                        onClick={(e) => saveRename(thread.thread_id, e)}
-                        className="p-1 hover:text-emerald-400 text-slate-400"
-                        title="Hifadhi jina"
-                        type="button"
-                      >
-                        <Check className="h-3 w-3" />
-                      </button>
-                      <button
-                        onClick={cancelRename}
-                        className="p-1 hover:text-rose-400 text-slate-400"
-                        title="Ghairi"
-                        type="button"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={(e) => startEditing(thread, e)}
-                        className="p-1 hover:text-slate-200 text-slate-500"
-                        title="Badilisha jina"
-                        type="button"
-                      >
-                        <Edit2 className="h-3 w-3" />
-                      </button>
-                      <button
-                        onClick={(e) => handleDelete(thread.thread_id, e)}
-                        className="p-1 hover:text-rose-400 text-slate-500"
-                        title="Futa mazungumzo"
-                        type="button"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            );
-          })
-        )}
+                    {/* Actions: Rename / Delete */}
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {isEditing ? (
+                        <>
+                          <button
+                            onClick={(e) => saveRename(thread.thread_id, e)}
+                            className="p-0.5 hover:text-emerald-400 text-zinc-400"
+                            type="button"
+                          >
+                            <Check className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={cancelRename}
+                            className="p-0.5 hover:text-rose-400 text-zinc-400"
+                            type="button"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={(e) => startEditing(thread, e)}
+                            className="p-0.5 hover:text-zinc-200 text-zinc-500"
+                            type="button"
+                          >
+                            <Edit2 className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={(e) => handleDelete(thread.thread_id, e)}
+                            className="p-0.5 hover:text-rose-400 text-zinc-500"
+                            type="button"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Bottom Sovereign & Offline Status Footprint */}
-      <div className="p-3 border-t border-canvas-border bg-[#080c17]">
-        <div className="rounded-lg border border-emerald-500/20 bg-emerald-950/20 p-2.5 text-[11px] text-emerald-300/90 space-y-1">
-          <div className="flex items-center gap-1.5 font-semibold text-emerald-300">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-            <span>Air-Gapped Sovereign AI</span>
+      {/* Bottom Upgrade / Trial Card (from sample UI) */}
+      <div className="p-3">
+        <div className="rounded-xl border border-white/10 bg-[#1f2129] p-3 text-xs space-y-2.5">
+          <div className="flex items-center gap-1.5 text-zinc-200 font-semibold">
+            <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+            <span>Lumen AI Trial</span>
           </div>
-          <p className="text-[10px] text-slate-400 leading-tight">
-            Data haivuji nje ya mipaka ya Afrika Mashariki (EAC PDPC / DPA Compliant).
+          <p className="text-[11px] text-zinc-400 leading-relaxed">
+            There are 10 days left for you to enjoy the various features.
           </p>
-          <div className="pt-1 flex items-center gap-1 text-[10px] text-slate-500 font-mono">
-            <Server className="h-3 w-3 text-slate-400" />
-            <span>NVIDIA NIM / Edge GGUF</span>
+          <button
+            onClick={onOpenBilling}
+            type="button"
+            className="w-full rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-black hover:bg-zinc-200 active:scale-[0.98] transition-all"
+          >
+            Upgrade to Pro
+          </button>
+        </div>
+      </div>
+
+      {/* User Profile Row at bottom */}
+      <div className="p-3 border-t border-white/5 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-white text-xs font-bold overflow-hidden ring-1 ring-white/10">
+            <span>MH</span>
+          </div>
+          <div className="text-left">
+            <div className="text-xs font-semibold text-zinc-200">Mithila Haque</div>
+            <div className="text-[10px] text-zinc-500">mithila@creova.ai</div>
           </div>
         </div>
+
+        <button
+          onClick={onOpenCommandPalette}
+          type="button"
+          className="text-zinc-500 hover:text-zinc-200 p-1 rounded-md hover:bg-white/5 transition-colors"
+          title="Mipangilio"
+        >
+          <Settings className="h-4 w-4" />
+        </button>
       </div>
     </aside>
   );
 };
+

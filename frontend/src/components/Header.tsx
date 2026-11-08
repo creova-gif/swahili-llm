@@ -91,7 +91,7 @@ export const Header: React.FC<HeaderProps> = ({
   const currentOption = DIALECT_OPTIONS.find((d) => d.id === selectedDialect) || DIALECT_OPTIONS[0];
 
   return (
-    <header className="flex h-14 w-full items-center justify-between border-b border-canvas-border bg-[#0b101d] px-3 sm:px-4 z-20">
+    <header className="flex h-14 w-full items-center justify-between border-b border-white/5 bg-[#111216] px-3 sm:px-4 z-20">
       {/* Left: Mobile sidebar toggle & Dialect Selector */}
       <div className="flex items-center gap-2">
         <button
@@ -178,8 +178,19 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
       </div>
 
-      {/* Right: WhatsApp view toggle, M-Pesa balance badge, Command palette */}
+      {/* Right: Free plan • Upgrade pill, WhatsApp toggle, M-Pesa balance badge, Cmd+K */}
       <div className="flex items-center gap-2">
+        {/* "Free plan • Upgrade" Pill (from sample image) */}
+        <button
+          onClick={onOpenBilling}
+          type="button"
+          className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-zinc-300 hover:bg-white/10 hover:text-white transition-all shadow-sm"
+        >
+          <span className="text-zinc-400">Free plan</span>
+          <span className="text-zinc-600">•</span>
+          <span className="font-semibold text-white hover:underline">Upgrade</span>
+        </button>
+
         {/* WhatsApp View Simulator Toggle */}
         <button
           onClick={onToggleViewMode}
@@ -189,13 +200,13 @@ export const Header: React.FC<HeaderProps> = ({
               ? 'Rejea kwenye mwonekano wa kawaida wa kiteknolojia'
               : 'Badili kwenda kiolesura chepesi cha WhatsApp Simulator (2G/Offline)'
           }
-          className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-medium transition-all ${
+          className={`hidden sm:flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-medium transition-all ${
             viewMode === 'whatsapp'
               ? 'border-[#00a884] bg-[#005c4b]/30 text-[#25d366] shadow-sm'
-              : 'border-canvas-border bg-canvas-surface/60 text-slate-400 hover:text-slate-200 hover:bg-canvas-elevated'
+              : 'border-white/10 bg-white/5 text-zinc-400 hover:text-zinc-200 hover:bg-white/10'
           }`}
         >
-          <Smartphone className={`h-3.5 w-3.5 ${viewMode === 'whatsapp' ? 'text-[#25d366]' : 'text-slate-500'}`} />
+          <Smartphone className={`h-3.5 w-3.5 ${viewMode === 'whatsapp' ? 'text-[#25d366]' : 'text-zinc-500'}`} />
           <span className="hidden lg:inline">
             {viewMode === 'whatsapp' ? 'WhatsApp Mode' : 'WhatsApp View'}
           </span>
@@ -206,23 +217,20 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={onOpenBilling}
           type="button"
           title="Ongeza salio la token kupitia Vodacom / Safaricom M-Pesa"
-          className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-mono font-medium text-emerald-300 hover:border-emerald-500/60 hover:bg-emerald-500/20 transition-all shadow-sm"
+          className="flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-mono font-medium text-emerald-300 hover:border-emerald-500/50 hover:bg-emerald-500/20 transition-all"
         >
           <Coins className="h-3.5 w-3.5 text-emerald-400" />
           <span className="font-semibold">
             {balanceInfo ? balanceInfo.balance_tokens.toLocaleString() : '897,870'}
           </span>
-          <span className="text-[10px] text-emerald-400/70 hidden sm:inline">tokens</span>
-          <span className="rounded bg-emerald-500/30 px-1 py-0.2 text-[9px] font-bold text-white uppercase ml-0.5">
-            M-PESA
-          </span>
+          <span className="text-[10px] text-emerald-400/70 hidden md:inline">tokens</span>
         </button>
 
         {/* Cmd+K Palette button */}
         <button
           onClick={onOpenCommandPalette}
           type="button"
-          className="hidden sm:flex items-center gap-1 rounded-lg border border-canvas-border bg-canvas-surface/60 px-2 py-1.5 text-xs text-slate-400 hover:bg-canvas-elevated hover:text-slate-200 transition-colors"
+          className="hidden sm:flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-zinc-400 hover:bg-white/10 hover:text-zinc-200 transition-colors"
           title="Fungua amri za haraka (Cmd+K)"
         >
           <Command className="h-3.5 w-3.5" />

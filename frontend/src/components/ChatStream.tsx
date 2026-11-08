@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Send,
   Sparkles,
   ArrowDown,
-  BookOpen,
-  Wheat,
-  Scale,
-  Smartphone,
-  Zap,
+  ArrowUp,
+  Plus,
+  ChevronDown,
+  Image as ImageIcon,
+  PenLine,
+  Code2,
+  Globe,
   StopCircle,
 } from 'lucide-react';
 import { ChatMessage, ViewMode, DialectType } from '../types';
@@ -23,34 +24,10 @@ interface ChatStreamProps {
   onStopStreaming?: () => void;
 }
 
-const STARTER_PROMPTS = [
-  {
-    icon: <Scale className="w-4 h-4 text-emerald-400" />,
-    title: 'Sheria na Mikataba',
-    text: 'Niandikie mkataba wa makubaliano ya biashara ya mazao kwa Kiswahili Sanifu.',
-  },
-  {
-    icon: <Wheat className="w-4 h-4 text-amber-400" />,
-    title: 'Kilimo na Masoko',
-    text: 'Nieleze mbinu bora za kuhifadhi mahindi baada ya mavuno na bei za soko EAC.',
-  },
-  {
-    icon: <Smartphone className="w-4 h-4 text-cyan-400" />,
-    title: 'Ujumuishi wa Kifedha',
-    text: 'Jinsi ya kuunganisha mfumo wa M-Pesa Daraja STK Push na kodi za biashara.',
-  },
-  {
-    icon: <BookOpen className="w-4 h-4 text-purple-400" />,
-    title: 'Tafsiri ya Lahaja',
-    text: 'Nieleze tofauti ya maneno ya Sheng ya Nairobi na Kiswahili Kingwana cha DRC.',
-  },
-];
-
 export const ChatStream: React.FC<ChatStreamProps> = ({
   messages,
   isStreaming,
   viewMode,
-  selectedDialect,
   onSendMessage,
   onStopStreaming,
 }) => {
@@ -150,7 +127,7 @@ export const ChatStream: React.FC<ChatStreamProps> = ({
   const isWhatsApp = viewMode === 'whatsapp';
 
   return (
-    <div className={`relative flex flex-1 flex-col h-full overflow-hidden ${isWhatsApp ? 'whatsapp-pattern' : 'bg-canvas'}`}>
+    <div className={`relative flex flex-1 flex-col h-full overflow-hidden ${isWhatsApp ? 'whatsapp-pattern' : 'bg-[#111216]'}`}>
       {/* Scrollable Message List */}
       <div
         ref={scrollContainerRef}
@@ -158,45 +135,102 @@ export const ChatStream: React.FC<ChatStreamProps> = ({
         className="flex-1 overflow-y-auto"
       >
         {messages.length === 0 ? (
-          /* Empty State / Welcome Hero */
-          <div className="flex flex-col items-center justify-center min-h-[80vh] px-4 text-center max-w-2xl mx-auto">
-            <div className="relative mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-amber-500 p-0.5 shadow-xl shadow-emerald-950/40">
-              <div className="flex h-full w-full items-center justify-center rounded-2xl bg-[#0b101c]">
-                <Zap className="h-8 w-8 text-emerald-400 fill-emerald-400" />
+          /* ====================================================================
+             EMPTY STATE HERO: EXACT EDITORIAL DARK MODE UI/UX DESIGN
+             ==================================================================== */
+          <div className="flex flex-col items-center justify-center min-h-[82vh] px-4 text-center max-w-3xl mx-auto">
+            {/* Elegant Editorial Serif Greeting */}
+            <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl text-zinc-100 font-normal tracking-tight mb-8 select-none">
+              Good Morning, Mithila
+            </h1>
+
+            {/* Centered Floating Input Container */}
+            <div className="w-full max-w-xl bg-[#22242c] border border-white/10 rounded-2xl p-3.5 shadow-2xl transition-all focus-within:border-white/20">
+              <textarea
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="How can I help you today?"
+                rows={2}
+                className="w-full bg-transparent text-sm text-zinc-100 placeholder-zinc-500 resize-none outline-none leading-relaxed"
+              />
+
+              <div className="flex items-center justify-between pt-2 mt-1 border-t border-white/5">
+                {/* Left: Attach / Tools */}
+                <button
+                  type="button"
+                  className="h-7 w-7 rounded-full flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+                  title="Ambatisha faili au chombo"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+
+                {/* Right Controls: Model Pill, Voice Mic, Send */}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/5 border border-white/5 text-xs text-zinc-300 font-medium cursor-pointer hover:bg-white/10 transition-colors">
+                    <span>Quantum 3</span>
+                    <ChevronDown className="w-3 h-3 text-zinc-500" />
+                  </div>
+
+                  <VoiceInput
+                    onTranscript={(t) => setInputText((prev) => (prev ? `${prev} ${t}` : t))}
+                    disabled={isStreaming}
+                  />
+
+                  <button
+                    onClick={handleSend}
+                    disabled={!inputText.trim() || isStreaming}
+                    type="button"
+                    className="h-7 w-7 rounded-full bg-white text-black flex items-center justify-center hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    title="Tuma ujumbe (Enter)"
+                  >
+                    <ArrowUp className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                </div>
               </div>
             </div>
 
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
-              Karibu kwenye <span className="text-emerald-400">LughaLLM</span>
-            </h2>
-            <p className="mt-2 text-xs sm:text-sm text-slate-400 max-w-md">
-              Mfumo kiongozi wa Akili Mnemba wenye uelewa wa kina wa Kiswahili Sanifu, Sheng ya Nairobi, na Kingwana cha DRC.
-            </p>
+            {/* Quick Action Suggestion Chips (from sample UI) */}
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2 max-w-xl">
+              <button
+                type="button"
+                onClick={() => onSendMessage('Tengeneza picha au mchoro wenye mandhari ya asili ya Afrika Mashariki.')}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#1b1c22] border border-white/5 text-xs text-zinc-300 hover:bg-[#252832] hover:border-white/15 transition-all shadow-sm"
+              >
+                <ImageIcon className="w-3.5 h-3.5 text-zinc-400" />
+                <span>Create an image</span>
+              </button>
 
-            {/* Quick Starters */}
-            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full text-left">
-              {STARTER_PROMPTS.map((prompt, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => onSendMessage(prompt.text)}
-                  className="group flex flex-col p-3 rounded-xl border border-canvas-border bg-canvas-surface/60 hover:bg-canvas-elevated hover:border-emerald-500/40 transition-all text-left"
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    {prompt.icon}
-                    <span className="text-xs font-semibold text-slate-200 group-hover:text-emerald-300">
-                      {prompt.title}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
-                    "{prompt.text}"
-                  </p>
-                </button>
-              ))}
+              <button
+                type="button"
+                onClick={() => onSendMessage('Niandikie hotuba rasmi au barua ya kikazi yenye ufasaha wa Kiswahili Sanifu.')}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#1b1c22] border border-white/5 text-xs text-zinc-300 hover:bg-[#252832] hover:border-white/15 transition-all shadow-sm"
+              >
+                <PenLine className="w-3.5 h-3.5 text-zinc-400" />
+                <span>Smart Writing</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onSendMessage('Nisaidie kuandika kodi safi ya Python na FastAPI kuunganisha Safaricom M-Pesa API.')}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#1b1c22] border border-white/5 text-xs text-zinc-300 hover:bg-[#252832] hover:border-white/15 transition-all shadow-sm"
+              >
+                <Code2 className="w-3.5 h-3.5 text-zinc-400" />
+                <span>AI Coding</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onSendMessage('Fanya utafiti wa kina wa athari za kilimo na mabadiliko ya tabianchi kanda ya Afrika Mashariki.')}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#1b1c22] border border-white/5 text-xs text-zinc-300 hover:bg-[#252832] hover:border-white/15 transition-all shadow-sm"
+              >
+                <Globe className="w-3.5 h-3.5 text-zinc-400" />
+                <span>Deep Research</span>
+              </button>
             </div>
           </div>
         ) : (
-          <div className="py-4 space-y-1">
+          <div className="py-6 max-w-3xl mx-auto px-4 space-y-4">
             {messages.map((message) => (
               <ChatMessageItem
                 key={message.id}
@@ -216,93 +250,91 @@ export const ChatStream: React.FC<ChatStreamProps> = ({
         <button
           onClick={scrollToBottom}
           type="button"
-          className="absolute bottom-24 right-6 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-slate-200 shadow-xl border border-slate-700 hover:bg-slate-700 transition-all"
+          className="absolute bottom-28 right-8 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-zinc-800 text-zinc-200 shadow-xl border border-white/10 hover:bg-zinc-700 transition-all"
           title="Shuka chini kabisa"
         >
           <ArrowDown className="h-4 w-4" />
         </button>
       )}
 
-      {/* Input Box Footer */}
-      <div className={`p-3 sm:p-4 border-t ${isWhatsApp ? 'bg-[#202c33] border-[#2f3b43]' : 'bg-[#090d16]/95 border-canvas-border'}`}>
-        <div className="max-w-4xl mx-auto">
-          <div className={`relative flex items-end gap-2 rounded-2xl border p-2 transition-all shadow-lg ${
-            isWhatsApp
-              ? 'bg-[#2a3942] border-transparent focus-within:border-[#00a884]'
-              : 'bg-[#0d1422] border-canvas-border focus-within:border-emerald-500/60 shadow-emerald-950/20'
-          }`}>
-            {/* Voice Input (Speech-to-Text) */}
-            <VoiceInput
-              onTranscript={(text) => {
-                setInputText((prev) => (prev ? `${prev} ${text}` : text));
-              }}
-              disabled={isStreaming}
-            />
+      {/* Floating Bottom Input Bar (when conversation is active) */}
+      {messages.length > 0 && (
+        <div className="p-4 pt-1 bg-gradient-to-t from-[#111216] via-[#111216]/90 to-transparent">
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-[#22242c] border border-white/10 rounded-2xl p-3 shadow-2xl transition-all focus-within:border-white/20">
+              <textarea
+                ref={textareaRef}
+                rows={1}
+                value={inputText}
+                onChange={(e) => {
+                  setInputText(e.target.value);
+                  e.target.style.height = 'auto';
+                  e.target.style.height = `${Math.min(e.target.scrollHeight, 180)}px`;
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder="How can I help you today?"
+                className="w-full bg-transparent text-sm text-zinc-100 placeholder-zinc-500 resize-none outline-none leading-relaxed min-h-[36px] max-h-[180px]"
+              />
 
-            {/* Multiline Textarea */}
-            <textarea
-              ref={textareaRef}
-              rows={1}
-              value={inputText}
-              onChange={(e) => {
-                setInputText(e.target.value);
-                e.target.style.height = 'auto';
-                e.target.style.height = `${Math.min(e.target.scrollHeight, 180)}px`;
-              }}
-              onKeyDown={handleKeyDown}
-              placeholder={
-                selectedDialect === 'sheng_nairobi'
-                  ? 'Uliza kitu hapa buda... (Enter kutuma)'
-                  : selectedDialect === 'kingwana_drc'
-                  ? 'Andika ujumbe wako mu Kingwana... (Enter kutuma)'
-                  : 'Uliza swali au omba msaada kwa Kiswahili... (Enter kutuma, Shift+Enter kwa mstari mpya)'
-              }
-              className="flex-1 resize-none bg-transparent py-1.5 px-2 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none min-h-[38px] max-h-[180px]"
-            />
+              <div className="flex items-center justify-between pt-2 mt-1 border-t border-white/5">
+                <button
+                  type="button"
+                  className="h-7 w-7 rounded-full flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+                  title="Ambatisha faili au chombo"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
 
-            {/* Send or Stop Streaming button */}
-            {isStreaming ? (
-              <button
-                type="button"
-                onClick={onStopStreaming}
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors"
-                title="Sitisha jibu"
-              >
-                <StopCircle className="h-5 w-5" />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleSend}
-                disabled={!inputText.trim()}
-                className={`flex h-9 w-9 items-center justify-center rounded-xl transition-all ${
-                  inputText.trim()
-                    ? isWhatsApp
-                      ? 'bg-[#00a884] text-white hover:bg-[#029070] active:scale-95'
-                      : 'bg-emerald-500 text-white shadow-md shadow-emerald-950/50 hover:bg-emerald-400 active:scale-95'
-                    : 'bg-canvas-subtle/50 text-slate-600 cursor-not-allowed'
-                }`}
-                title="Tuma ujumbe (Enter)"
-              >
-                <Send className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/5 border border-white/5 text-xs text-zinc-300 font-medium cursor-pointer hover:bg-white/10 transition-colors">
+                    <span>Quantum 3</span>
+                    <ChevronDown className="w-3 h-3 text-zinc-500" />
+                  </div>
 
-          <div className="mt-2 flex items-center justify-between px-2 text-[11px] text-slate-500">
-            <span className="flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-emerald-400" />
-              LughaLLM Sovereign Engine 8B
-            </span>
-            <span>
-              <kbd className="font-mono text-[10px] bg-canvas-elevated px-1 py-0.5 rounded border border-canvas-border">
-                Shift + Enter
-              </kbd>{' '}
-              mstari mpya
-            </span>
+                  <VoiceInput
+                    onTranscript={(t) => setInputText((prev) => (prev ? `${prev} ${t}` : t))}
+                    disabled={isStreaming}
+                  />
+
+                  {isStreaming ? (
+                    <button
+                      type="button"
+                      onClick={onStopStreaming}
+                      className="h-7 w-7 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center hover:bg-amber-500/30 transition-colors"
+                      title="Sitisha jibu"
+                    >
+                      <StopCircle className="h-4 w-4" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleSend}
+                      disabled={!inputText.trim()}
+                      type="button"
+                      className="h-7 w-7 rounded-full bg-white text-black flex items-center justify-center hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      title="Tuma ujumbe (Enter)"
+                    >
+                      <ArrowUp className="w-4 h-4 stroke-[2.5]" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-1.5 flex items-center justify-between px-2 text-[10px] text-zinc-500">
+              <span className="flex items-center gap-1">
+                <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
+                LughaLLM Sovereign Engine 8B
+              </span>
+              <span>
+                <kbd className="font-mono bg-white/5 px-1 py-0.5 rounded border border-white/5">
+                  Shift + Enter
+                </kbd>{' '}
+                kwa mstari mpya
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

@@ -272,6 +272,8 @@ export const App: React.FC = () => {
         onDeleteThread={handleDeleteThread}
         isOpen={isSidebarOpen}
         onCloseMobile={() => setIsSidebarOpen(false)}
+        onOpenBilling={() => setIsBillingOpen(true)}
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
       />
 
       {/* Main Chat Area */}

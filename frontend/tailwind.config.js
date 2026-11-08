@@ -9,13 +9,13 @@ export default {
     extend: {
       colors: {
         canvas: {
-          DEFAULT: '#090d16',
-          surface: '#0f1726',
-          elevated: '#152033',
-          subtle: '#1c2a42',
-          input: '#0b111c',
+          DEFAULT: '#111216',
+          sidebar: '#17181d',
+          surface: '#1c1e24',
+          card: '#22252e',
+          input: '#1d1f26',
           border: 'rgba(255, 255, 255, 0.08)',
-          'border-medium': 'rgba(255, 255, 255, 0.16)',
+          'border-medium': 'rgba(255, 255, 255, 0.14)',
         },
         lugha: {
           emerald: '#10b981',
@@ -40,6 +40,7 @@ export default {
         }
       },
       fontFamily: {
+        serif: ['Newsreader', 'Instrument Serif', 'Georgia', 'serif'],
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
       },
