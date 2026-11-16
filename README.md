@@ -1,17 +1,19 @@
 # LughaLLM — Foundational AI Infrastructure for East Africa
 
+[![CI](https://github.com/creova-gif/swahili-llm/actions/workflows/ci.yml/badge.svg)](https://github.com/creova-gif/swahili-llm/actions/workflows/ci.yml)
+![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
+![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)
 [![SDG 9](https://img.shields.io/badge/UN%20SDG-9%3A%20Industry%2C%20Innovation%20%26%20Infrastructure-blue.svg)](https://sdgs.un.org/goals/goal9)
-[![Benchmark](https://img.shields.io/badge/Benchmark-SWAHILI--BENCH%20Top--1-green.svg)](#swahili-bench-evaluation-suite)
-[![Reasoning](https://img.shields.io/badge/System--2-Swahili%20Reasoning%20%3Cfikiri%3E-yellow.svg)](#system-2-swahili-deep-reasoning-engine)
-[![Hardware](https://img.shields.io/badge/Hardware-NVIDIA%20H100%20%2B%20NIM-76B900.svg)](#nvidia-nim--hardware-acceleration)
-[![Edge](https://img.shields.io/badge/Edge%20Inference-Ollama%20%2B%20GGUF-purple.svg)](#edge-inference--local-open-weights)
-[![Cloud](https://img.shields.io/badge/Cloud-Google%20Cloud%20Run%20%2B%20Vertex%20AI-4285F4.svg)](#google-cloud-deployment)
+[![Hardware](https://img.shields.io/badge/Hardware-NVIDIA%20NIM-76B900.svg)](#nvidia-nim--hardware-acceleration)
+[![Cloud](https://img.shields.io/badge/Cloud-Google%20Cloud%20Run-4285F4.svg)](#google-cloud-run-deployment)
+
+**A Swahili-first LLM platform: dialect-aware chat API, Python SDK and CLI, and the SWAHILI-BENCH evaluation suite.**
 
 **LughaLLM** is the open-weights foundational AI language infrastructure designed specifically for East and Central Africa's **200M+ Swahili speakers** across Tanzania, Kenya, Uganda, the Democratic Republic of Congo (DRC), Rwanda, Burundi, South Sudan, and Mozambique.
 
 ---
 
-## 1. Problem Grounding & Evidence (Rubric: 20%)
+## 1. Problem Grounding & Evidence
 
 ### Problem Statement
 Standard frontier LLMs (GPT-4o, Claude 3.5 Sonnet, Llama 3) fail significantly in East African local contexts:
@@ -25,7 +27,7 @@ Directly supports **United Nations Sustainable Development Goal 9 (Industry, Inn
 
 ---
 
-## 2. Solution Architecture & Value Proposition (Rubric: 25%)
+## 2. Solution Architecture & Value Proposition
 
 LughaLLM provides a full-stack, enterprise-grade Swahili AI platform:
 
@@ -62,6 +64,21 @@ LughaLLM provides a full-stack, enterprise-grade Swahili AI platform:
 
 ---
 
+## ✨ Key Features
+
+- **Dialect detection** for Sanifu (standard), Sheng, Kingwana and Ugandan Swahili.
+- **System-2 reasoning engine** (`<fikiri>` traces) with an Adabu politeness filter.
+- **OpenAI-style chat API** (FastAPI) with token metering and M-Pesa top-up simulation.
+- **Python SDK** (`lughallm.client.LughaClient`) and `lughallm` CLI for chat, keys and benchmarks.
+- **SWAHILI-BENCH**: proverbs, Sheng, East African context and hallucination-resistance tests.
+- **Deployment targets**: Docker Compose (API + Ollama), Google Cloud Run, NVIDIA NIM.
+- **Web playground** (`frontend/`, React + Vite).
+
+<!-- TODO: replace with a real screenshot or GIF of the web playground -->
+<p align="center"><img src="docs/images/playground-placeholder.svg" alt="LughaLLM web playground screenshot (placeholder)" width="720" /></p>
+
+---
+
 ## 3. SWAHILI-BENCH Evaluation Suite
 
 `SWAHILI-BENCH` is our standardized benchmark evaluating four critical competency areas:
@@ -71,6 +88,8 @@ LughaLLM provides a full-stack, enterprise-grade Swahili AI platform:
 - **Hallucination Resistance:** Defense against fabricated geography, non-existent currencies, or fictitious historical facts.
 
 ### Benchmark Comparison
+
+> **Note:** these figures come from `run_mock_simulation()` in `lughallm/src/benchmark/swahili_bench.py`, which compares scripted LughaLLM and "generic LLM" responses. They demonstrate the harness, not a measured model comparison.
 
 | Metric / Dimension | LughaLLM (Fine-Tuned) | Generic Base LLM |
 |---|:---:|:---:|
@@ -83,7 +102,7 @@ LughaLLM provides a full-stack, enterprise-grade Swahili AI platform:
 
 ---
 
-## 4. Codebase Structure (Rubric: 25%)
+## 4. Codebase Structure
 
 ```
 lughallm/
@@ -138,7 +157,46 @@ lughallm/
 
 ---
 
-## 5. Quickstart & Verification (Rubric: 10%)
+## 5. Getting Started
+
+### Prerequisites
+
+- Python 3.9+ (CI tests 3.10–3.12)
+- Node.js 18+ and npm, only for the `frontend/` web playground
+- Optional: Docker, `gcloud` CLI, an NVIDIA NGC API key
+
+### Installation
+
+```bash
+git clone https://github.com/creova-gif/swahili-llm.git
+cd swahili-llm
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+pip install -e .            # installs the `lughallm` CLI
+```
+
+Web playground:
+
+```bash
+cd frontend && npm install && npm run dev
+```
+
+### Configuration
+
+Settings are read from environment variables or a `.env` file (`lughallm/src/api/config.py`). Everything is optional; without keys the API runs in local demo mode.
+
+| Variable | Default | Purpose |
+| :--- | :--- | :--- |
+| `ENVIRONMENT` | `development` | Runtime environment name |
+| `HOST` / `PORT` | `0.0.0.0` / `8000` | API bind address |
+| `DEFAULT_MODEL` | `lughallm-llama3-8b` | Model served by default |
+| `NVIDIA_NIM_ENDPOINT`, `NVIDIA_API_KEY` | — | NVIDIA NIM inference |
+| `GCP_PROJECT_ID`, `GCP_LOCATION`, `GOOGLE_VERTEX_ENDPOINT` | —, `us-central1`, — | Google Cloud / Vertex AI |
+| `MPESA_CONSUMER_KEY`, `MPESA_CONSUMER_SECRET`, `MPESA_PASSKEY`, `MPESA_SHORTCODE` | —, —, —, `174379` (sandbox) | M-Pesa Daraja billing |
+| `LUGHALLM_LOCAL_URL`, `LUGHALLM_LOCAL_MODEL` | — | Local Ollama endpoint and model |
+| `WHATSAPP_VERIFY_TOKEN` | — | WhatsApp webhook verification |
+
+### Quickstart
 
 ### Run the Interactive Showcase Demo
 ```bash
@@ -203,7 +261,7 @@ gcloud builds submit --config=lughallm/infra/cloudbuild.yaml .
 
 ---
 
-## 7. Business Model & Implementation Roadmap (Rubric: 20%)
+## 7. Business Model & Implementation Roadmap
 
 | Horizon | Milestone | Key Deliverable | Revenue Engine |
 |---|---|---|---|
@@ -213,5 +271,15 @@ gcloud builds submit --config=lughallm/infra/cloudbuild.yaml .
 
 ---
 
+## 🤝 Contributing
+
+Contributions are welcome, especially Swahili test cases and dialect data. See [`CONTRIBUTING.md`](./CONTRIBUTING.md) and our [Code of Conduct](./CODE_OF_CONDUCT.md).
+
+## 💬 Support
+
+- Bugs and questions: [open an issue](https://github.com/creova-gif/swahili-llm/issues)
+- Security issues: email creativeinnovationspace@gmail.com instead of filing a public issue
+
 ## License
-MIT License. Developed for the East African Open AI Infrastructure Initiative.
+
+`pyproject.toml` declares MIT, but no `LICENSE` file has been published yet. Until one is added, all rights are reserved.
