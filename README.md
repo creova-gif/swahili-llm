@@ -282,4 +282,4 @@ Contributions are welcome, especially Swahili test cases and dialect data. See [
 
 ## License
 
-`pyproject.toml` declares MIT, but no `LICENSE` file has been published yet. Until one is added, all rights are reserved.
+Released under the [MIT License](LICENSE).
