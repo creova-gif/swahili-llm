@@ -5,8 +5,8 @@ Asante for helping! Bug fixes, new SWAHILI-BENCH cases and dialect data are all 
 ## Setup
 
 ```bash
-git clone https://github.com/creova-gif/swahili-llm.git
-cd swahili-llm
+git clone https://github.com/creova-gif/lughallm.git
+cd lughallm
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .

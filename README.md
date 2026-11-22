@@ -1,6 +1,6 @@
 # LughaLLM — Foundational AI Infrastructure for East Africa
 
-[![CI](https://github.com/creova-gif/swahili-llm/actions/workflows/ci.yml/badge.svg)](https://github.com/creova-gif/swahili-llm/actions/workflows/ci.yml)
+[![CI](https://github.com/creova-gif/lughallm/actions/workflows/ci.yml/badge.svg)](https://github.com/creova-gif/lughallm/actions/workflows/ci.yml)
 ![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)
 [![SDG 9](https://img.shields.io/badge/UN%20SDG-9%3A%20Industry%2C%20Innovation%20%26%20Infrastructure-blue.svg)](https://sdgs.un.org/goals/goal9)
@@ -168,8 +168,8 @@ lughallm/
 ### Installation
 
 ```bash
-git clone https://github.com/creova-gif/swahili-llm.git
-cd swahili-llm
+git clone https://github.com/creova-gif/lughallm.git
+cd lughallm
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .            # installs the `lughallm` CLI
@@ -277,7 +277,7 @@ Contributions are welcome, especially Swahili test cases and dialect data. See [
 
 ## 💬 Support
 
-- Bugs and questions: [open an issue](https://github.com/creova-gif/swahili-llm/issues)
+- Bugs and questions: [open an issue](https://github.com/creova-gif/lughallm/issues)
 - Security issues: email creativeinnovationspace@gmail.com instead of filing a public issue
 
 ## License
