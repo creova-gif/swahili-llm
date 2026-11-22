@@ -102,6 +102,21 @@ LughaLLM provides a full-stack, enterprise-grade Swahili AI platform:
 
 ---
 
+## 🧰 Tech Stack
+
+| Layer | Technology | Version |
+|---|---|---|
+| Language | Python | 3.9+ (CI: 3.10–3.12; Docker: 3.11) |
+| API | FastAPI, Uvicorn | ≥0.110, ≥0.28 |
+| Validation / settings | Pydantic, pydantic-settings | ≥2.6, ≥2.2 |
+| HTTP client | HTTPX | ≥0.27 |
+| Benchmark reporting | Jinja2, tabulate | ≥3.1, ≥0.9 |
+| Frontend | React, Vite, TypeScript | ^18.3, ^6.1, ^5.7 |
+| Styling | Tailwind CSS | ^3.4 |
+| Testing | pytest, pytest-asyncio | ≥8.0, ≥0.23 |
+
+Versions come from `pyproject.toml`, `requirements.txt`, `frontend/package.json` and `Dockerfile`.
+
 ## 4. Codebase Structure
 
 ```
