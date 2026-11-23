@@ -27,14 +27,27 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Virtual environments
+# Environment & secrets
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# AI agent & platform export clutter
+.claude/
+.agents/
+.cursor/
+gstack/
+attached_assets/
+mockup-sandbox/
 
 # Node & Web
 node_modules/

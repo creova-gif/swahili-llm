@@ -9,9 +9,13 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test-and-benchmark:
-    name: Unit Tests & Pan-African SWAHILI-BENCH
+    name: Unit Tests & SWAHILI-BENCH Harness
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -19,18 +23,18 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Run Test Suite (Zero-Dependency Standard Library)
+      - name: Run Test Suite (Zero-Dependency Standard Library Mode)
         run: |
           python -m unittest discover -s lughallm/tests -p "test_*.py" -v
 
-      - name: Run SWAHILI-BENCH Benchmark Evaluation
+      - name: Run SWAHILI-BENCH Evaluator Self-Test
         run: |
           python -m lughallm.src.benchmark.swahili_bench
 
@@ -38,9 +42,10 @@ jobs:
         run: |
           python lughallm/demo.py
 
-      - name: Install Package & Verify CLI Entrypoint
+      - name: Install Package, Run Full FastAPI Integration Tests & Verify CLI
         run: |
           pip install .
+          python -m unittest discover -s lughallm/tests -p "test_*.py" -v
           lughallm --help
           lughallm bench --model lughallm
 
