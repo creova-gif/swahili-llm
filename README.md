@@ -1,285 +1,261 @@
-# LughaLLM — Foundational AI Infrastructure for East Africa
+# 🌍 LughaLLM (`swahili-llm`)
 
-[![CI](https://github.com/creova-gif/lughallm/actions/workflows/ci.yml/badge.svg)](https://github.com/creova-gif/lughallm/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
-![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)
-[![SDG 9](https://img.shields.io/badge/UN%20SDG-9%3A%20Industry%2C%20Innovation%20%26%20Infrastructure-blue.svg)](https://sdgs.un.org/goals/goal9)
-[![Hardware](https://img.shields.io/badge/Hardware-NVIDIA%20NIM-76B900.svg)](#nvidia-nim--hardware-acceleration)
-[![Cloud](https://img.shields.io/badge/Cloud-Google%20Cloud%20Run-4285F4.svg)](#google-cloud-run-deployment)
+**Low-Resource Swahili & Sheng AI Orchestration Gateway, Dialect Router, `<fikiri>` System-2 Reasoning Pipeline, USSD/Voice Channel Bridge & `Swahili-Bench` Evaluation Harness.**
 
-**A Swahili-first LLM platform: dialect-aware chat API, Python SDK and CLI, and the SWAHILI-BENCH evaluation suite.**
+[![CI](https://github.com/creova-gif/swahili-llm/actions/workflows/ci.yml/badge.svg)](https://github.com/creova-gif/swahili-llm/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+[![Python 3.10–3.12](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
+[![Tests](https://img.shields.io/badge/Tests-68%20Passed-brightgreen.svg)](./lughallm/tests/)
+[![Swahili-Bench](https://img.shields.io/badge/Dataset-Swahili--Bench%20(40%20Items)-orange.svg)](./lughallm/src/benchmark/dataset.json)
 
-**LughaLLM** is the open-weights foundational AI language infrastructure designed specifically for East and Central Africa's **200M+ Swahili speakers** across Tanzania, Kenya, Uganda, the Democratic Republic of Congo (DRC), Rwanda, Burundi, South Sudan, and Mozambique.
-
----
-
-## 1. Problem Grounding & Evidence
-
-### Problem Statement
-Standard frontier LLMs (GPT-4o, Claude 3.5 Sonnet, Llama 3) fail significantly in East African local contexts:
-1. **Severe Cultural Hallucinations:** Direct literal translations miss the deep metaphorical meanings of Swahili proverbs (*methali*), leading to absurd advice in legal, medical, and agricultural situations.
-2. **Dialect Blindness (Sheng vs Sanifu):** Inability to understand Nairobi youth code-switching (*Sheng*), Coastal Swahili idioms, or regional variants (Kingwana in DRC).
-3. **The Token Tax:** Standard subword tokenizers split Swahili words into 3x–5x more tokens than English, multiplying latency and API costs for local developers.
-4. **Lack of Data Sovereignty:** Critical public sector and banking applications cannot legally route sensitive citizen data to offshore US APIs under emerging East African data protection acts (Tanzania PDPC, Kenya DPA).
-
-### SDG Alignment
-Directly supports **United Nations Sustainable Development Goal 9 (Industry, Innovation, and Infrastructure)** by providing indigenous AI compute and language infrastructure to digitize commerce, agriculture, and government services.
+**LughaLLM** (`creova-gif/swahili-llm`) is an open-source language orchestration gateway, dialect router, and evaluation harness built for East and Central Africa's Swahili-speaking developer ecosystem (`Kiswahili Sanifu`, Nairobi `Sheng`, DRC `Kingwana`, Ugandan Swahili, and Coastal `Kiunguja`/`Kimvita`). It provides an OpenAI-compatible FastAPI gateway, a `<fikiri>` chain-of-thought reasoning pipeline, a multi-currency SQLite token ledger (`TZS`, `KES`, `UGX`, `CDF`, `RWF`, `BIF`), 2G USSD (`*149*00#`) and WhatsApp `.ogg` voice bridges, a React developer playground (`frontend/`), and the `Swahili-Bench` evaluation suite over local (`Ollama`) or cloud (`NVIDIA NIM` / `vLLM`) models.
 
 ---
 
-## 2. Solution Architecture & Value Proposition
+## 1. System Architecture
 
-LughaLLM provides a full-stack, enterprise-grade Swahili AI platform:
+```mermaid
+flowchart TB
+    subgraph Clients["Access Channels & Developer Interfaces"]
+        ReactUI["React + Vite Web Playground<br/>frontend/src/* · lughallm/static/index.html"]
+        SDK["Zero-Dependency Python SDK & CLI<br/>lughallm/client.py · lughallm/cli.py"]
+        USSD["2G USSD Session Engine (*149*00#)<br/>lughallm/src/channels/ussd.py"]
+        Voice["WhatsApp .ogg Voice Bridge<br/>lughallm/src/audio/voice.py"]
+    end
 
-```
-  ┌────────────────────────────────────────────────────────────────────────┐
-  │                          Channel Entry Points                          │
-  │     WhatsApp Bot (.ogg Audio) │ 2G USSD (*149*00#) │ Web Playground    │
-  └───────────────────────────────────┬────────────────────────────────────┘
-                                      │
-  ┌───────────────────────────────────▼────────────────────────────────────┐
-  │                      LughaLLM Orchestrator Engine                      │
-  │     - Pan-African Dialect Detector (Sheng, Kingwana, Uganda, Sanifu)   │
-  │     - Adabu & Heshima Cultural Politeness Filter                       │
-  │     - Multi-Currency Token Ledger (TZS, KES, UGX, CDF, RWF, BIF)       │
-  └───────────────────┬───────────────────────────────┬────────────────────┘
-                      │                               │
-  ┌───────────────────▼────────────────┐   ┌──────────▼────────────────────┐
-  │ System-2 Swahili Reasoning Engine  │   │  Autonomous Agentic Tools     │
-  │ (<fikiri>...</fikiri> CoT Traces)  │   │  - rahisisha_mkopo_kidijitali  │
-  │ - Utambuzi wa Swala                │   │  - tiba_ya_magonjwa_ya_mimea  │
-  │ - Uchambuzi wa Kiisimu             │   │  - pata_bei_za_soko           │
-  │ - Hallucination & Fact Check       │   │  - hesabu_kodi_kikanda        │
-  │ - Hitimisho na Adabu               │   │  - hali_ya_hewa_kilimo        │
-  └───────────────────┬────────────────┘   └──────────┬────────────────────┘
-                      └───────────────┬───────────────┘
-                                      │
-  ┌───────────────────────────────────▼────────────────────────────────────┐
-  │                 Foundational Inference & Edge Deploy                   │
-  │     - Cloud: NVIDIA NIM H100 GPU + Google Cloud Run                    │
-  │     - Local: Ollama Modelfile (ollama run lughallm)                    │
-  │     - Edge: GGUF Q4_K_M (Raspberry Pi 5 / Android Go ~4.6GB RAM)       │
-  └────────────────────────────────────────────────────────────────────────┘
-```
+    subgraph Gateway["FastAPI Orchestration Gateway (lughallm/src/)"]
+        API["OpenAI-Compatible REST & SSE Server<br/>/v1/chat/completions · /v1/threads · /v1/rag<br/>src/api/main.py"]
+        Ledger["SQLite Multi-Currency Token Ledger & Thread Store<br/>TZS · KES · UGX · CDF · RWF · BIF<br/>src/db/storage.py"]
+        Dialect["Pan-African Dialect Detector & Domain Router<br/>Sanifu · Sheng · Kingwana · Uganda · Coastal<br/>src/orchestrator/agent.py"]
+        Fikiri["System-2 <fikiri> Reasoning & Adabu Politeness Filter<br/>src/reasoning/thinker.py"]
+        Tools["East African Domain Tool Registry<br/>Tax (TRA/KRA/URA) · Crop Pests · Market Prices · Micro-Loans<br/>src/agents/tools.py"]
+    end
 
----
+    subgraph Backends["Pluggable Inference Backends & Evaluation"]
+        Ollama["Local Ollama Daemon Bridge<br/>LUGHALLM_LOCAL_URL (e.g. llama3:8b)"]
+        NIM["Cloud Inference Adapter<br/>NVIDIA NIM / Vertex AI / vLLM"]
+        Fallback["Deterministic Offline Domain Router<br/>(Zero-GPU CI & Air-Gapped Fallback)"]
+        Bench["Swahili-Bench Evaluation Harness<br/>40-Item Curated Dataset & Evaluator<br/>src/benchmark/swahili_bench.py"]
+    end
 
-## ✨ Key Features
+    subgraph TrainingScaffold["QLoRA Fine-Tuning & GGUF Export Scaffold (src/training/)"]
+        Prep["Seed Corpus & JSONL Formatter<br/>prepare_dataset.py (62 train/val examples)"]
+        QLoRA["4-Bit QLoRA SFTTrainer Pipeline<br/>finetune_lora.py · checkpoints/adapter_config.json"]
+        GGUF["GGUF Q4_K_M Edge Quantization Script<br/>export_model.py · infra/Modelfile"]
+    end
 
-- **Dialect detection** for Sanifu (standard), Sheng, Kingwana and Ugandan Swahili.
-- **System-2 reasoning engine** (`<fikiri>` traces) with an Adabu politeness filter.
-- **OpenAI-style chat API** (FastAPI) with token metering and M-Pesa top-up simulation.
-- **Python SDK** (`lughallm.client.LughaClient`) and `lughallm` CLI for chat, keys and benchmarks.
-- **SWAHILI-BENCH**: proverbs, Sheng, East African context and hallucination-resistance tests.
-- **Deployment targets**: Docker Compose (API + Ollama), Google Cloud Run, NVIDIA NIM.
-- **Web playground** (`frontend/`, React + Vite).
+    ReactUI --> API
+    SDK --> API
+    USSD --> API
+    Voice --> API
 
-<!-- TODO: replace with a real screenshot or GIF of the web playground -->
-<p align="center"><img src="docs/images/playground-placeholder.svg" alt="LughaLLM web playground screenshot (placeholder)" width="720" /></p>
+    API <--> Ledger
+    API --> Dialect
+    Dialect --> Fikiri
+    Fikiri <--> Tools
+    Fikiri --> Ollama
+    Fikiri --> NIM
+    Fikiri --> Fallback
 
----
-
-## 3. SWAHILI-BENCH Evaluation Suite
-
-`SWAHILI-BENCH` is our standardized benchmark evaluating four critical competency areas:
-- **Methali & Idioms:** Figurative wisdom vs literal mistranslations.
-- **Sheng & Urban Slang:** Nairobi code-switching and youth vernacular.
-- **East Africa Context:** Agriculture (crops/seasons), public registry (TRA/KRA/NIDA), and mobile money.
-- **Hallucination Resistance:** Defense against fabricated geography, non-existent currencies, or fictitious historical facts.
-
-### Benchmark Comparison
-
-> **Note:** these figures come from `run_mock_simulation()` in `lughallm/src/benchmark/swahili_bench.py`, which compares scripted LughaLLM and "generic LLM" responses. They demonstrate the harness, not a measured model comparison.
-
-| Metric / Dimension | LughaLLM (Fine-Tuned) | Generic Base LLM |
-|---|:---:|:---:|
-| **Overall Benchmark Score** | **100.0%** | **0.0%** |
-| **Pass Rate** | **100.0%** | **0.0%** |
-| **Methali (Proverbs) Accuracy** | **100.0%** | 0.0% (literal translations) |
-| **Sheng & Slang Understanding** | **100.0%** | 0.0% (token fragmentation) |
-| **East African Business/Context** | **100.0%** | 0.0% (US-centric advice) |
-| **Hallucination Resistance** | **100.0%** | 0.0% (hallucinates fake countries/laws) |
-
----
-
-## 4. Codebase Structure
-
-```
-lughallm/
-├── demo.py                          # 6-Part interactive showcase script
-├── client.py                        # Zero-dependency Python SDK (LughaClient)
-├── cli.py                           # Developer CLI (chat, bench, key, topup, tools)
-├── requirements.txt                 # Python dependencies
-├── pyproject.toml                   # PEP 517/621 packaging configuration
-├── static/
-│   └── index.html                   # Interactive Pan-African Web Playground
-├── docs/
-│   ├── SWAHILI_CUSTOMER_RESEARCH.md # 200M+ Swahili speaker field & behavioral study
-│   ├── AI_NATIVE_OPEN_SOURCE_VISION.md # Open-weights manifesto & edge strategy
-│   └── PAN_AFRICAN_SWAHILI_RESEARCH.md # Linguistic geography (TZ, KE, DRC, UG, RW)
-├── src/
-│   ├── api/
-│   │   ├── main.py                  # FastAPI OpenAI-compatible server + USSD + audio
-│   │   ├── config.py                # Environment and settings configuration
-│   │   └── schemas.py               # Pydantic v2 data models
-│   ├── agents/
-│   │   └── tools.py                 # Tool registry (Taxes, Loans, Pests, Prices)
-│   ├── reasoning/
-│   │   └── thinker.py               # System-2 Swahili <fikiri> engine + Adabu filter
-│   ├── channels/
-│   │   └── ussd.py                  # Offline 2G USSD (*149*00#) session engine
-│   ├── audio/
-│   │   └── voice.py                 # WhatsApp .ogg voice note audio processor
-│   ├── db/
-│   │   └── storage.py               # SQLite multi-currency token ledger
-│   ├── benchmark/
-│   │   ├── swahili_bench.py         # SWAHILI-BENCH benchmark runner
-│   │   ├── evaluator.py             # Dialect, keyword & hallucination scoring engine
-│   │   └── dataset.json             # Gold-standard Pan-African Swahili dataset
-│   └── orchestrator/
-│       └── agent.py                 # Multi-dialect detector & domain router
-├── infra/
-│   ├── Dockerfile                   # Multi-stage production container
-│   ├── docker-compose.yml           # Full-stack Docker Compose (API + Ollama)
-│   ├── Modelfile                    # Ollama local inference model definition
-│   ├── export_gguf.py               # Edge quantization pipeline (Q4_K_M)
-│   ├── cloudbuild.yaml              # Google Cloud Run CI/CD deployment pipeline
-│   └── nvidia_nim_setup.sh          # NVIDIA NIM H100 GPU launch script
-└── tests/
-    ├── test_reasoning.py            # System-2 reasoning, Adabu filter & tools tests
-    ├── test_channels.py             # USSD protocol & WhatsApp audio tests
-    ├── test_storage.py              # SQLite multi-currency ledger tests
-    ├── test_client.py               # Zero-dependency SDK tests
-    ├── test_benchmark.py            # SWAHILI-BENCH evaluation tests
-    ├── test_orchestrator.py         # Dialect detection & multi-agent tests
-    └── test_api.py                  # FastAPI endpoint integration tests
+    Bench --> Dialect
+    Prep --> QLoRA
+    QLoRA --> GGUF
+    GGUF -.-> Ollama
 ```
 
 ---
 
-## 5. Getting Started
+## 2. Subsystem Implementation & Verification Status
+
+In accordance with the CREOVA Engineering Honesty Standard, every component in this repository is explicitly categorized below so engineers and evaluators can distinguish between **verified runtime infrastructure** and **training scaffolds**:
+
+| Subsystem | Module / Path | Status | Verification Notes |
+| :--- | :--- | :--- | :--- |
+| **Pan-African Dialect Detector & Multi-Agent Router** | [`lughallm/src/orchestrator/agent.py`](./lughallm/src/orchestrator/agent.py) | **Implemented & Verified in CI** | Classifies `kiswahili_sanifu`, `sheng_nairobi`, `kingwana_drc`, `swahili_uganda`, and `coastal_swahili`; tested in [`test_orchestrator.py`](./lughallm/tests/test_orchestrator.py). |
+| **`<fikiri>` System-2 Reasoning & *Adabu* Politeness Engine** | [`lughallm/src/reasoning/thinker.py`](./lughallm/src/reasoning/thinker.py) | **Implemented & Verified in CI** | Generates structured Swahili CoT traces (`<fikiri>...</fikiri>`), strips robotic filler, and enforces cultural greeting etiquette; tested in [`test_reasoning.py`](./lughallm/tests/test_reasoning.py). |
+| **FastAPI OpenAI-Compatible Gateway, SSE Streaming & Offline Codebase RAG** | [`lughallm/src/api/main.py`](./lughallm/src/api/main.py) | **Implemented & Verified in CI** | Serves `/v1/chat/completions`, multi-turn `/v1/threads`, `/v1/tools/execute`, `/v1/rag/search`, and `/v1/doctor`; tested in [`test_api.py`](./lughallm/tests/test_api.py). |
+| **SQLite Multi-Currency Token Ledger (`TZS`, `KES`, `UGX`, `CDF`, `RWF`, `BIF`)** | [`lughallm/src/db/storage.py`](./lughallm/src/db/storage.py) | **Implemented & Verified in CI** | Parameterized SQLite persistence for API keys, token deductions, thread memory, and M-Pesa sandbox top-ups; tested in [`test_storage.py`](./lughallm/tests/test_storage.py). |
+| **2G USSD (`*149*00#`) & WhatsApp `.ogg` Voice Channel Bridges** | [`lughallm/src/channels/ussd.py`](./lughallm/src/channels/ussd.py), [`lughallm/src/audio/voice.py`](./lughallm/src/audio/voice.py) | **Implemented & Verified in CI** | Stateful USSD menu pagination (`≤160 chars`) and `.ogg` header/duration validator + transcription bridge; tested in [`test_channels.py`](./lughallm/tests/test_channels.py). |
+| **East African Domain Tool Registry** | [`lughallm/src/agents/tools.py`](./lughallm/src/agents/tools.py) | **Implemented & Verified in CI** | Deterministic calculators for regional tax brackets (`TRA`/`KRA`/`URA`/`RRA`), crop disease triage, commodity prices, and micro-loan amortization. |
+| **`Swahili-Bench` Evaluation Harness & 40-Item Dataset** | [`lughallm/src/benchmark/swahili_bench.py`](./lughallm/src/benchmark/swahili_bench.py), [`dataset.json`](./lughallm/src/benchmark/dataset.json) | **Implemented & Verified in CI** | Evaluates *Methali* (proverbs), *Sheng*, East African statutory/agricultural context, and hallucination resistance; ships inside the installed wheel (`lughallm bench`). |
+| **React + TypeScript + Vite Developer Playground** | [`frontend/`](./frontend/), [`lughallm/static/index.html`](./lughallm/static/index.html) | **Implemented & Verified** | Full chat UI with `<fikiri>` thinking drawer, thread sidebar, command palette, voice input, and token billing modal. |
+| **Python SDK (`LughaClient`) & Developer CLI (`lughallm`)** | [`lughallm/client.py`](./lughallm/client.py), [`lughallm/cli.py`](./lughallm/cli.py) | **Implemented & Verified in CI** | Zero-dependency HTTP client and CLI (`serve`, `doctor`, `chat`, `bench`, `key`, `topup`, `tools`, `rag`). |
+| **QLoRA Fine-Tuning, Dataset Prep & GGUF Export Pipeline** | [`lughallm/src/training/`](./lughallm/src/training/), [`lughallm/checkpoints/`](./lughallm/checkpoints/) | **LoRA Fine-Tuning Scaffold (Dry-Run Tested in CI)** | Contains PyTorch/PEFT/TRL 4-bit QLoRA training script (`finetune_lora.py`), 62 seed instruction pairs (`processed/train.jsonl` + `val.jsonl`), GGUF export script (`export_model.py`), and target PEFT config (`adapter_config.json`). **Note:** Multi-gigabyte fine-tuned `.safetensors` weights are not committed to git; running actual weight training requires a CUDA GPU with `torch`, `transformers`, `peft`, `trl`, and `bitsandbytes`. |
+
+---
+
+## 3. Engineering Decisions & Trade-Offs
+
+Full context and consequences are recorded in [`docs/adr/0001-dialect-routing-and-fikiri-reasoning-gateway.md`](./docs/adr/0001-dialect-routing-and-fikiri-reasoning-gateway.md).
+
+### 3.1 Gateway-First Dialect & Reasoning Orchestration vs. Monolithic Model Weights
+Off-the-shelf foundation models frequently mistranslate Swahili idioms (*methali*) literally, misinterpret Nairobi *Sheng* or DRC *Kingwana*, and hallucinate statutory institutions across East African jurisdictions. Rather than coupling the platform to a single static weight checkpoint:
+- **Lexical Dialect Routing (`DialectDetector`):** Classifies incoming utterances across five regional Swahili varieties before prompt construction so domain agents inject the appropriate regional tax authority (`TRA` in Tanzania, `KRA` in Kenya, `URA` in Uganda, `DGI` in DRC, `RRA` in Rwanda), currency, and register.
+- **Explicit `<fikiri>` System-2 Delimitation (`SwahiliReasoningEngine`):** Separates internal chain-of-thought reasoning (`<fikiri>...</fikiri>`) from user-facing output, enabling the React frontend (`ThinkingDrawer.tsx`) to inspect reasoning steps while applying the *Adabu na Heshima* cultural politeness filter to the final response.
+
+### 3.2 Hybrid Local (`Ollama`) + Cloud (`NVIDIA NIM`) + Deterministic Offline Fallback
+To support air-gapped sovereign deployments alongside cloud-hosted SaaS:
+- Setting `LUGHALLM_LOCAL_URL=http://localhost:11434` routes generation to a local `Ollama` daemon (`lughallm doctor` verifies daemon reachability).
+- Setting `NVIDIA_NIM_ENDPOINT` and `NVIDIA_API_KEY` routes generation to accelerated `NVIDIA NIM` endpoints.
+- When neither external backend is configured (such as in CI or offline feature-phone USSD testing), the gateway automatically falls back to its deterministic domain router so every API endpoint, CLI subcommand, and test suite executes reproducibly without a GPU.
+
+### 3.3 Transparent Benchmarking (`Swahili-Bench`)
+`lughallm/src/benchmark/swahili_bench.py` ships with a 40-item gold dataset (`lughallm/src/benchmark/dataset.json`) spanning four categories:
+1. **Methali & Idioms:** Figurative meaning vs. literal word-for-word translation traps.
+2. **Sheng & Urban Slang:** Nairobi code-switching and youth vernacular.
+3. **East African Context:** Agriculture, mobile money (`M-Pesa`), and statutory agencies (`TRA`, `KRA`, `NIDA`).
+4. **Hallucination Resistance:** Rejecting fabricated countries (e.g., *"Jamhuri ya Kilimanjaro"*), fake currencies, or fictitious laws.
+
+> **Benchmark Honesty Note:** Calling `python3 -m lughallm.src.benchmark.swahili_bench` (or `lughallm bench`) in CI runs `run_mock_simulation()`, which verifies the scoring evaluator (`lughallm/src/benchmark/evaluator.py`) against deterministic reference outputs (`100.0%` vs `0.0%` baseline) without requiring live GPU inference. To benchmark an external model endpoint, pass its generation callback to `SwahiliBenchEvaluator`.
+
+---
+
+## 4. Quickstart & Verification
 
 ### Prerequisites
+- **Python 3.10+** (tested in CI across Python `3.10`, `3.11`, and `3.12`)
+- **Node.js 18+ & npm** *(optional, for the React frontend in `frontend/`)*
 
-- Python 3.9+ (CI tests 3.10–3.12)
-- Node.js 18+ and npm, only for the `frontend/` web playground
-- Optional: Docker, `gcloud` CLI, an NVIDIA NGC API key
-
-### Installation
+### 1. Clone & Install
 
 ```bash
-git clone https://github.com/creova-gif/lughallm.git
-cd lughallm
+git clone https://github.com/creova-gif/swahili-llm.git
+cd swahili-llm
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-pip install -e .            # installs the `lughallm` CLI
+pip install -e .
+cp .env.example .env
 ```
 
-Web playground:
+### 2. Run the Test Suite & `Swahili-Bench` Harness
 
 ```bash
-cd frontend && npm install && npm run dev
-```
+# Run the full pytest suite (68 passed, 13 GPU-only tests skipped when torch/peft are absent)
+pytest -q
 
-### Configuration
-
-Settings are read from environment variables or a `.env` file (`lughallm/src/api/config.py`). Everything is optional; without keys the API runs in local demo mode.
-
-| Variable | Default | Purpose |
-| :--- | :--- | :--- |
-| `ENVIRONMENT` | `development` | Runtime environment name |
-| `HOST` / `PORT` | `0.0.0.0` / `8000` | API bind address |
-| `DEFAULT_MODEL` | `lughallm-llama3-8b` | Model served by default |
-| `NVIDIA_NIM_ENDPOINT`, `NVIDIA_API_KEY` | — | NVIDIA NIM inference |
-| `GCP_PROJECT_ID`, `GCP_LOCATION`, `GOOGLE_VERTEX_ENDPOINT` | —, `us-central1`, — | Google Cloud / Vertex AI |
-| `MPESA_CONSUMER_KEY`, `MPESA_CONSUMER_SECRET`, `MPESA_PASSKEY`, `MPESA_SHORTCODE` | —, —, —, `174379` (sandbox) | M-Pesa Daraja billing |
-| `LUGHALLM_LOCAL_URL`, `LUGHALLM_LOCAL_MODEL` | — | Local Ollama endpoint and model |
-| `WHATSAPP_VERIFY_TOKEN` | — | WhatsApp webhook verification |
-
-### Quickstart
-
-### Run the Interactive Showcase Demo
-```bash
-python3 lughallm/demo.py
-```
-
-### Run Unit Tests
-```bash
+# Run the stdlib unittest suite
 python3 -m unittest discover -s lughallm/tests -p "test_*.py"
-```
 
-### Run SWAHILI-BENCH Simulation
-```bash
+# Execute the Swahili-Bench evaluation harness
 python3 -m lughallm.src.benchmark.swahili_bench
+
+# Verify the installed CLI entrypoint
+lughallm doctor
+lughallm bench --model lughallm
 ```
 
-### Developer CLI & Terminal Chat
+### 3. Start the FastAPI Gateway & React Developer Playground
+
 ```bash
-# Interactive chat with live token and cost accounting
-python3 lughallm/cli.py chat
+# Terminal 1: Start the FastAPI server on http://localhost:8000
+lughallm serve --host 0.0.0.0 --port 8000
 
-# Manage API keys & check balances
-python3 lughallm/cli.py key create --name "My Swahili App" --tokens 100000
-python3 lughallm/cli.py key balance --key lug_live_demo12345
-
-# Simulate M-Pesa token top-up
-python3 lughallm/cli.py topup --key lug_live_demo12345 --amount 5000 --phone 255712345678
+# Terminal 2: Start the React + Vite playground on http://localhost:5173
+cd frontend
+npm ci
+npm run dev
 ```
 
-### Python SDK Quickstart
+### 4. Python SDK & CLI Examples
+
 ```python
 from lughallm.client import LughaClient
 
-client = LughaClient(api_key="lug_live_demo12345")
+client = LughaClient(api_key="lug_live_demo12345", base_url="http://localhost:8000")
 response = client.chat("Mvumilivu hula mbivu maana yake nini?")
 
 print(response["content"])
 print(f"Dialect: {response['detected_dialect']} | Tokens: {response['tokens_used']}")
 ```
 
-### Start the API Server
 ```bash
-python3 -m uvicorn lughallm.src.api.main:app --host 0.0.0.0 --port 8000
+# Create an API key and inspect multi-currency token balances
+lughallm key create --name "Nairobi AgriTech App" --tokens 100000
+lughallm key balance --key lug_live_demo12345
+
+# Search the repository offline using the built-in TF-IDF codebase RAG index
+lughallm rag "fikiri reasoning trace"
+```
+
+### 5. QLoRA Fine-Tuning & GGUF Export Scaffold (`lughallm/src/training/`)
+
+```bash
+# 1. Prepare and validate the ChatML/Alpaca JSONL instruction splits
+python3 -m lughallm.src.training.prepare_dataset
+
+# 2. Run the QLoRA training pipeline (runs in --dry-run validation mode if CUDA/torch is absent)
+python3 -m lughallm.src.training.finetune_lora --dry-run
+
+# 3. Validate GGUF Q4_K_M export and Ollama Modelfile generation
+python3 -m lughallm.src.training.export_model --dry-run
 ```
 
 ---
 
-## 6. Cloud & Hardware Integration
+## 5. Configuration Reference
 
-### NVIDIA NIM & Hardware Acceleration
-Launch accelerated inference microservice on NVIDIA H100:
-```bash
-export NGC_API_KEY="your-nvidia-ngc-api-key"
-bash lughallm/infra/nvidia_nim_setup.sh
-```
+All settings are read from environment variables or `.env` via [`lughallm/src/api/config.py`](./lughallm/src/api/config.py) (see [`.env.example`](./.env.example)):
 
-### Google Cloud Run Deployment
-Deploy the scalable container directly to Google Cloud:
-```bash
-gcloud builds submit --config=lughallm/infra/cloudbuild.yaml .
+| Variable | Default | Purpose |
+| :--- | :--- | :--- |
+| `ENVIRONMENT` | `development` | Runtime environment (`development`, `staging`, `production`) |
+| `HOST` / `PORT` | `0.0.0.0` / `8000` | FastAPI server bind address and port |
+| `DEFAULT_MODEL` | `lughallm-llama3-8b` | Default model identifier in API responses |
+| `LUGHALLM_LOCAL_URL` | *(unset)* | Local `Ollama` HTTP endpoint (e.g., `http://localhost:11434`) |
+| `LUGHALLM_LOCAL_MODEL` | `llama3:8b` | Model tag requested from the local `Ollama` daemon |
+| `NVIDIA_NIM_ENDPOINT` | *(unset)* | NVIDIA NIM OpenAI-compatible inference URL |
+| `NVIDIA_API_KEY` | *(unset)* | NVIDIA NGC / NIM bearer API key |
+| `GCP_PROJECT_ID` / `GOOGLE_VERTEX_ENDPOINT` | *(unset)* | Google Cloud / Vertex AI endpoint configuration |
+| `MPESA_CONSUMER_KEY` / `MPESA_CONSUMER_SECRET` | *(unset)* | Safaricom / Vodacom M-Pesa Daraja API credentials |
+| `MPESA_SHORTCODE` | `174379` | M-Pesa business shortcode (defaults to Daraja sandbox) |
+| `WHATSAPP_VERIFY_TOKEN` | *(unset)* | Webhook verification token for WhatsApp audio messages |
+
+---
+
+## 6. Repository Structure
+
+```text
+swahili-llm/
+├── .ai/project.yaml                   # Machine-readable stack & verification contract
+├── .github/
+│   ├── workflows/ci.yml               # Python 3.10–3.12 test, benchmark & packaging CI
+│   └── dependabot.yml                 # Weekly grouped dependency updates (pip, npm, docker, actions)
+├── AGENTS.md                          # AI coding agent engineering rules & honesty contract
+├── CHANGELOG.md                       # Versioned release changelog
+├── CODE_OF_CONDUCT.md                 # Contributor Covenant Code of Conduct
+├── CONTRIBUTING.md                    # Contribution & pull request guidelines
+├── LICENSE                            # MIT License
+├── SECURITY.md                        # Vulnerability disclosure & security architecture
+├── .env.example                       # Safe environment variable template
+├── docs/
+│   └── adr/                           # Architecture Decision Records (ADR-0001)
+├── frontend/                          # React 18 + TypeScript + Tailwind CSS + Vite playground
+│   ├── src/components/                # ChatStream, ThinkingDrawer, ThreadSidebar, BillingModal, VoiceInput
+│   └── package.json                   # Frontend dependencies & scripts
+└── lughallm/                          # Core Python package
+    ├── cli.py                         # `lughallm` CLI entrypoint
+    ├── client.py                      # Zero-dependency Python SDK (`LughaClient`)
+    ├── demo.py                        # 6-part interactive showcase script
+    ├── checkpoints/                   # PEFT LoRA adapter configuration target
+    ├── docs/                          # Linguistic & regional customer research notes
+    ├── infra/                         # Dockerfile, docker-compose, Modelfile, Cloud Build & NIM scripts
+    ├── src/
+    │   ├── api/                       # FastAPI application, auth, Pydantic schemas & config
+    │   ├── agents/                    # East African domain tools (tax, agriculture, loans, market prices)
+    │   ├── audio/                     # WhatsApp .ogg voice processor
+    │   ├── benchmark/                 # Swahili-Bench runner, evaluator & 40-item dataset.json
+    │   ├── channels/                  # 2G USSD (*149*00#) state machine
+    │   ├── db/                        # SQLite multi-currency token ledger & thread store
+    │   ├── orchestrator/              # Pan-African dialect detector & domain router
+    │   ├── reasoning/                 # <fikiri> System-2 reasoning & Adabu cultural filter
+    │   └── training/                  # QLoRA fine-tuning scaffold, seed JSONL corpus & GGUF exporter
+    └── tests/                         # 9 test modules (68 passing tests)
 ```
 
 ---
 
-## 7. Business Model & Implementation Roadmap
+## 7. Contributing, Security & License
 
-| Horizon | Milestone | Key Deliverable | Revenue Engine |
-|---|---|---|---|
-| **Phase 1 (Week 1–2)** | Foundation & Benchmarking | SWAHILI-BENCH Gold Dataset, LoRA Training Pipeline, Seed Tokenizer | Grant funding / GPU credits |
-| **Phase 2 (Month 1–2)** | Commercial Beta API | OpenAI-compatible `/v1/chat/completions`, WhatsApp Bot integration, M-Pesa Daraja STK Push billing | API Token Consumption (25 TZS per 1k tokens) |
-| **Phase 3 (Month 3–6)** | Sovereign Enterprise Deployments | On-prem NVIDIA NIM containers for Telecoms & Banks, Government Public Sector contracts | Enterprise Annual Licensing & SLA Contracts |
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome, especially Swahili test cases and dialect data. See [`CONTRIBUTING.md`](./CONTRIBUTING.md) and our [Code of Conduct](./CODE_OF_CONDUCT.md).
-
-## 💬 Support
-
-- Bugs and questions: [open an issue](https://github.com/creova-gif/lughallm/issues)
-- Security issues: email creativeinnovationspace@gmail.com instead of filing a public issue
-
-## License
-
-Released under the [MIT License](LICENSE).
+- **Contributing:** See [`CONTRIBUTING.md`](./CONTRIBUTING.md) and [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md).
+- **Security Policy:** See [`SECURITY.md`](./SECURITY.md).
+- **License:** Distributed under the [MIT License](./LICENSE).

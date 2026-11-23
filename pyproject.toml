@@ -60,3 +60,7 @@ include = ["lughallm*"]
 # works after `pip install .` (SwahiliBenchRunner loads it next to the module).
 "lughallm.src.benchmark" = ["dataset.json"]
 "lughallm.src.training" = ["*.jsonl"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["lughallm/tests"]

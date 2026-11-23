@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   test-and-benchmark:
     name: Unit Tests & Pan-African SWAHILI-BENCH

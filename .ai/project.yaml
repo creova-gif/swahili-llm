@@ -1,0 +1,14 @@
+name: swahili-llm
+owner: creova-gif
+
+stack:
+  language: [python, typescript]
+  framework: [fastapi, react, vite]
+
+# null = no command configured -> agents MUST report NOT VERIFIED for that gate
+verification:
+  install: pip install -r requirements.txt && pip install -e .
+  lint: null
+  typecheck: null
+  test: python3 -m pytest -q && python3 -m lughallm.src.benchmark.swahili_bench
+  build: python3 -m py_compile lughallm/cli.py lughallm/client.py lughallm/demo.py
