@@ -6,6 +6,15 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Python 3.10–3.12](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](./pyproject.toml)
 
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![Pydantic](https://img.shields.io/badge/Pydantic-E92063?logo=pydantic&logoColor=white)
+![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?logo=tailwindcss&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+![pytest](https://img.shields.io/badge/pytest-0A9EDC?logo=pytest&logoColor=white)
+
 > [!IMPORTANT]
 > **Research Scaffold & Weights Status:** **No trained model checkpoint weights (`.safetensors` / `.gguf`) or hosted model endpoints are published yet.**
 > This repository provides the **training pipeline (`finetune_lora.py`)**, **seed instruction schema (`swahili_instructions_seed.jsonl`)**, **40-item `Swahili-Bench` evaluation harness (`dataset.json` + `evaluator.py`)**, and **application/gateway scaffolding** (`FastAPI`, `SQLite` ledger, `2G USSD` menu engine, `React` developer UI). Unless you connect a live `Ollama` (`LUGHALLM_LOCAL_URL`) or `NVIDIA NIM` (`NVIDIA_NIM_ENDPOINT` + `NVIDIA_API_KEY`) backend, the orchestrator, `<fikiri>` trace wrapper, and `.ogg` audio endpoint operate as **deterministic offline simulation stubs** for local integration testing.
