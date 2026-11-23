@@ -14,9 +14,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY requirements.txt .
 RUN pip install --upgrade pip && \
-    pip install --user -r requirements.txt
+    pip install --prefix=/install -r requirements.txt
 
-# Stage 2: Final runtime image
+# Stage 2: Final non-root runtime image
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -24,14 +24,18 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid 10001 lughallm \
+    && useradd --uid 10001 --gid 10001 --create-home --shell /usr/sbin/nologin lughallm
 
-COPY --from=builder /root/.local /root/.local
-ENV PATH=/root/.local/bin:$PATH \
-    PYTHONUNBUFFERED=1 \
+COPY --from=builder /install /usr/local
+ENV PYTHONUNBUFFERED=1 \
     PORT=8000
 
 COPY . /app
+RUN chown -R lughallm:lughallm /app
+
+USER lughallm
 
 EXPOSE 8000
 

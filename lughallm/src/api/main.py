@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse, FileResponse, PlainTextResponse, Str
 from fastapi.middleware.cors import CORSMiddleware
 
 from lughallm.src.api.config import settings
+from lughallm.src.api.cors_policy import resolve_cors_policy
 from lughallm.src.db.storage import ledger
 from lughallm.src.api.auth import verify_api_key
 from lughallm.src.api.schemas import (
@@ -46,15 +47,17 @@ from lughallm.src.agents.tools import tool_registry
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
-    description="Foundational Swahili LLM API for East Africa. Native support for Kiswahili Sanifu & Sheng."
+    description="LughaLLM Research Scaffold, Swahili Dialect Router & Evaluation Harness API."
 )
+
+_cors_origins, _cors_allow_credentials = resolve_cors_policy()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_cors_origins,
+    allow_credentials=_cors_allow_credentials,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 orchestrator = LughaOrchestrator()

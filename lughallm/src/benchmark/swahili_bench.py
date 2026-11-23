@@ -109,11 +109,11 @@ class SwahiliBenchRunner:
 
 if __name__ == "__main__":
     runner = SwahiliBenchRunner()
-    print("Running SWAHILI-BENCH Baseline: LughaLLM vs Generic LLM...")
+    print("Running SWAHILI-BENCH Evaluator Self-Test (Synthetic Reference vs Strawman — No Trained Weights)...")
     lugha_res = runner.run_mock_simulation("lughallm")
     generic_res = runner.run_mock_simulation("generic_base_llm")
 
-    print("\n================== SWAHILI-BENCH RESULTS ==================")
-    print(f"LughaLLM Overall Score: {lugha_res['overall_score']*100:.1f}% | Pass Rate: {lugha_res['pass_rate']*100:.1f}%")
-    print(f"Generic LLM Overall Score: {generic_res['overall_score']*100:.1f}% | Pass Rate: {generic_res['pass_rate']*100:.1f}%")
+    print("\n======== SWAHILI-BENCH SYNTHETIC HARNESS SELF-TEST ========")
+    print(f"Synthetic Reference Profile Score: {lugha_res['overall_score']*100:.1f}% | Pass Rate: {lugha_res['pass_rate']*100:.1f}%")
+    print(f"Synthetic Strawman Profile Score:  {generic_res['overall_score']*100:.1f}% | Pass Rate: {generic_res['pass_rate']*100:.1f}%")
     print("===========================================================")

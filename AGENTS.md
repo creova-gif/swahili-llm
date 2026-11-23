@@ -1,11 +1,14 @@
-# AGENTS.md
+# Repository Engineering & AI Agent Contract
 
-Project facts, stack, and verification commands: [`.ai/project.yaml`](./.ai/project.yaml).
-Architecture Decision Records: [`docs/adr/0001-dialect-routing-and-fikiri-reasoning-gateway.md`](./docs/adr/0001-dialect-routing-and-fikiri-reasoning-gateway.md).
+## 1. Decision Hierarchy
+1. Verified repository code, lockfiles, and passing tests (`.ai/project.yaml`, `lughallm/tests/`)
+2. Accepted ADRs in `docs/adr/` (`docs/adr/0001-dialect-routing-and-fikiri-reasoning-gateway.md`)
+3. Repository-specific constraints in this file
+4. Shared Engineering Governance Standard (`v1.0`)
 
-## Engineering Rules
-
-1. **Architectural Honesty:** Always distinguish between the **implemented and verified orchestration gateway, dialect router, `<fikiri>` reasoning pipeline, and `Swahili-Bench` evaluation harness** (`lughallm/src/`, `frontend/`) and the **QLoRA training & GGUF export scaffold** (`lughallm/src/training/`, `lughallm/checkpoints/`). Never claim pre-trained model weights are bundled in git or that scripted `run_mock_simulation()` outputs are live neural benchmark scores.
-2. **Offline & Stdlib Portability:** Core unit tests (`lughallm/tests/`) and `Swahili-Bench` must pass in clean Python 3.10–3.12 environments without requiring a GPU or live external API keys.
-3. **Zero Artifacts or Secrets in Git:** Never commit `.env` files, `*.sqlite3` ledger files, `build/`, or `*.egg-info/` directories.
-4. **Definition of Done:** Run the commands under `verification:` in `.ai/project.yaml`; if any gate is `null` or cannot run, report `NOT VERIFIED` with the reason. Never push, force-push, or modify remotes without explicit approval.
+## 2. Hard Invariants for All Agents (Antigravity, Devin, Claude, Codex, GStack)
+- **Epistemic Honesty:** Never claim trained neural checkpoint weights (`.safetensors` / `.gguf`) are published in this repository until real fine-tuned weights and reproducible inference logs exist. Always separate real training/evaluation code (`finetune_lora.py`, `dataset.json`, `evaluator.py`, FastAPI gateway, SQLite ledger) from offline simulation stubs (`orchestrator/agent.py` fallback strings, `reasoning/thinker.py` static `<fikiri>` template, `audio/voice.py` sample transcript stub, and `swahili_bench.py::run_mock_simulation()`). Never present `run_mock_simulation()` `100.0% vs 0.0%` reference-echo scores as empirical LLM benchmark results.
+- **No Unapproved Dependencies:** Do not add runtime packages without explicit task approval and lockfile updates.
+- **No Harness or Asset Pollution:** Never commit `.claude/`, `.agents/`, `.cursor/`, `gstack/`, `attached_assets/`, `archive/`, `dist/`, `*.sqlite3`, or `.env` files.
+- **Security Fail-Closed:** Never combine `allow_origins=["*"]` with `allow_credentials=True` (`lughallm/src/api/cors_policy.py`), never run containers as `root`, and never commit fallback production secrets.
+- **PR & Verification Discipline:** Place imports at module top. Every change must pass automated tests locally and land via an atomic Conventional Commit pull request.
